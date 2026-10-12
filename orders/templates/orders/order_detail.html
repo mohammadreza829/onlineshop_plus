@@ -1,48 +1,60 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
 
-<h1>سفارش شماره {{ order.id }}</h1>
+{% block title %}سفارش {{ order.order_number }}{% endblock %}
 
-<p>وضعیت: {{ order.get_status_display }}</p>
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  <h1>سفارش {{ order.order_number }}</h1>
 
-<hr />
+  <p>وضعیت: <strong>{{ order.get_status_display }}</strong></p>
+  {% if order.is_paid %}
+    <p>کد رهگیری پرداخت: <strong dir="ltr">{{ order.ref_id }}</strong></p>
+  {% endif %}
+  {% if order.status == "needs_review" %}
+    <p style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px;">
+      پرداخت شما ثبت شده است اما موجودی یکی از کالاها تمام شده؛ همکاران ما برای تامین کالا یا بازگشت وجه با شما تماس می‌گیرند.
+    </p>
+  {% endif %}
+  {% if order.is_payable %}
+    <p style="background: #e7f1ff; padding: 10px; border-radius: 6px;">
+      کالاهای این سفارش تا ساعت <strong>{{ order.reserved_until|time:"H:i" }}</strong> برای شما رزرو شده‌اند. پس از آن سفارش منقضی می‌شود.
+    </p>
+  {% endif %}
 
-{% for item in order.items.all %}
+  <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+    <thead>
+      <tr><th>کالا</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th></tr>
+    </thead>
+    <tbody>
+      {% for item in order.items.all %}
+        <tr>
+          <td>{{ item.product_name }}</td>
+          <td>{{ item.price }} تومان</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.total_price }} تومان</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-<p>
-  {{ item.product_name }}
+  <p>هزینه ارسال: {{ order.post_price }} تومان</p>
+  <h2>مبلغ کل: {{ order.total_price }} تومان</h2>
+  <p>ارسال به: {{ order.first_name }} {{ order.last_name }} — {{ order.address }} — کد پستی {{ order.postal_code }}</p>
 
-  <br />
-
-  تعداد: {{ item.quantity }}
-
-  <br />
-
-  قیمت: {{ item.price }}
-
-  <br />
-
-  جمع: {{ item.total_price }}
-</p>
-
-<hr />
-
-{% endfor %}
-
-<h3>هزینه ارسال: {{ order.post_price }}</h3>
-
-<h2>مبلغ کل: {{ order.total_price }}</h2>
-<br />
-
-{% comment %} {% if not order.is_paid %}
-
-<a href="{% url 'orders:payment_request' order.id %}" class="btn btn-success">
-  پرداخت سفارش
-</a>
-
-{% endif %}  {% endcomment %}
-{% if not order.is_paid %}
-<a href="{% url 'payment:process' order.id %}" class="btn btn-success">
-  پرداخت سفارش
-</a>
-{% endif %}
+  <div style="display: flex; gap: 10px; margin-top: 20px;">
+    {% if order.is_payable %}
+      <form method="post" action="{% url 'payment:process' order.id %}">
+        {% csrf_token %}
+        <button type="submit" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">پرداخت سفارش</button>
+      </form>
+    {% endif %}
+    {% if order.is_cancelable_by_user %}
+      <form method="post" action="{% url 'orders:order_cancel' order.id %}" onsubmit="return confirm('سفارش لغو شود؟');">
+        {% csrf_token %}
+        <button type="submit" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">لغو سفارش</button>
+      </form>
+    {% endif %}
+    <a href="{% url 'orders:order_list' %}" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">همهٔ سفارش‌ها</a>
+  </div>
+</div>
 {% endblock %}

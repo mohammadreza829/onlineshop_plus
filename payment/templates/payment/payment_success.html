@@ -5,11 +5,22 @@
 {% block content %}
 <div style="max-width: 600px; margin: 40px auto; padding: 20px; text-align: center; border: 1px solid #d4edda; border-radius: 8px; background-color: #d4edda; color: #155724;">
     <h2>🎉 پرداخت با موفقیت انجام شد</h2>
-    <p>شماره سفارش: <strong>{{ order.order_number }}</strong></p>
     <p>کد پیگیری تراکنش (RefID): <strong>{{ ref_id }}</strong></p>
-    <p>مبلغ پرداخت‌شده: <strong>{{ order.total_price }} تومان</strong></p>
-    
+    {% if order %}
+        <p>شماره سفارش: <strong>{{ order.order_number }}</strong></p>
+        <p>مبلغ پرداخت‌شده: <strong>{{ order.total_price }} تومان</strong></p>
+        {% if needs_review %}
+            <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px;">
+                پرداخت شما ثبت شد اما موجودی یکی از کالاها در این فاصله تمام شده است.
+                همکاران ما برای تامین کالا یا بازگشت وجه با شما تماس می‌گیرند.
+            </p>
+        {% endif %}
+    {% endif %}
+
     <div style="margin-top: 20px;">
+        {% if order %}
+            <a href="{% url 'orders:order_detail' order.id %}" style="padding: 10px 20px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;">مشاهده سفارش</a>
+        {% endif %}
         <a href="{% url 'shop:product_list' %}" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">بازگشت به فروشگاه</a>
     </div>
 </div>

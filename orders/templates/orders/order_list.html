@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}سفارش‌های من{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
+  <h1>سفارش‌های من</h1>
+  {% if orders %}
+    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr><th>شماره سفارش</th><th>تاریخ</th><th>تعداد اقلام</th><th>مبلغ</th><th>وضعیت</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>{{ order.order_number }}</td>
+            <td>{{ order.created|date:"Y/m/d H:i" }}</td>
+            <td>{{ order.items.all|length }}</td>
+            <td>{{ order.total_price }} تومان</td>
+            <td>{{ order.get_status_display }}</td>
+            <td><a href="{% url 'orders:order_detail' order.id %}">جزئیات</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>هنوز سفارشی ثبت نکرده‌اید. <a href="{% url 'shop:product_list' %}">مشاهدهٔ محصولات</a></p>
+  {% endif %}
+</div>
+{% endblock %}

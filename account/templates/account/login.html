@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}ورود / ثبت‌نام با شماره همراه{% endblock %}
+
+{% block content %}
+<div style="max-width: 420px; margin: 50px auto; padding: 25px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+
+    <div style="font-size: 40px; margin-bottom: 10px;">📱</div>
+    <h2 style="margin-bottom: 10px; color: #333;">ورود / ثبت‌نام</h2>
+    <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
+        برای ادامه خرید، لطفاً شماره تلفن همراه خود را وارد کنید.
+    </p>
+
+    <form method="post" style="text-align: right;" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.phone.id_for_label }}" style="display: block; font-size: 14px; color: #555; margin-bottom: 6px; font-weight: bold;">
+                {{ form.phone.label }}
+            </label>
+            <input type="tel"
+                   name="{{ form.phone.html_name }}"
+                   id="{{ form.phone.id_for_label }}"
+                   value="{{ form.phone.value|default:'' }}"
+                   placeholder="مثلاً 09123456789"
+                   inputmode="numeric"
+                   autocomplete="tel"
+                   maxlength="20"
+                   required
+                   dir="ltr"
+                   style="width: 100%; padding: 12px; font-size: 16px; text-align: center; letter-spacing: 2px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; outline: none;">
+            {% if form.phone.errors %}
+                <div style="color: #dc3545; font-size: 12px; margin-top: 5px;">{{ form.phone.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <button type="submit" style="width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px;">
+            ارسال کد تایید پیامکی 📩
+        </button>
+    </form>
+
+    <div style="margin-top: 20px; font-size: 12px; color: #888;">
+        ورود شما به معنای پذیرش شرایط و قوانین فروشگاه است.
+    </div>
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
+from decimal import ROUND_HALF_UP, Decimal
 
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 
 # ==========================================
 # Category
@@ -147,13 +148,11 @@ class Product(models.Model):
 
     @property
     def final_price(self):
-
+        """Price after discount, rounded to a whole Toman (prices have no decimals)."""
         if self.off >= 100:
-            return 0
-
-        return self.price - (
-            self.price * self.off / 100
-        )
+            return Decimal("0")
+        discounted = Decimal(self.price) * (Decimal(100) - Decimal(self.off)) / Decimal(100)
+        return discounted.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
 # ==========================================

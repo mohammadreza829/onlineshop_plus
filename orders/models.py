@@ -1,10 +1,16 @@
-# from email.headerregistry import Address
 import uuid
-from django.db import models
+
 from django.conf import settings
-from shop.models import Product
+from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
+
 from addresses.models import Address as AddressModel
+from shop.models import Product
+
+
+class InvalidTransition(Exception):
+    """Raised when an order is moved to a status that is not allowed from its current one."""
 
 
 class Order(models.Model):
@@ -14,6 +20,8 @@ class Order(models.Model):
     STATUS_SENT = "sent"
     STATUS_DELIVERED = "delivered"
     STATUS_CANCELED = "canceled"
+    STATUS_EXPIRED = "expired"
+    STATUS_NEEDS_REVIEW = "needs_review"
 
     STATUS_CHOICES = (
         (STATUS_PENDING, "در انتظار پرداخت"),
@@ -22,7 +30,26 @@ class Order(models.Model):
         (STATUS_SENT, "ارسال شده"),
         (STATUS_DELIVERED, "تحویل داده شده"),
         (STATUS_CANCELED, "لغو شده"),
+        (STATUS_EXPIRED, "منقضی شده"),
+        (STATUS_NEEDS_REVIEW, "نیازمند بررسی"),
     )
+
+    # State machine: which statuses are reachable from each status.
+    # - EXPIRED/CANCELED -> PAID/NEEDS_REVIEW exists because a gateway callback can
+    #   arrive after the reservation expired (or after the user canceled). The money
+    #   has already been taken, so we must record it instead of rejecting it.
+    # - NEEDS_REVIEW = paid, but stock could not be re-reserved -> admin must ship
+    #   (after restocking) or refund.
+    TRANSITIONS = {
+        STATUS_PENDING: {STATUS_PAID, STATUS_NEEDS_REVIEW, STATUS_CANCELED, STATUS_EXPIRED},
+        STATUS_EXPIRED: {STATUS_PAID, STATUS_NEEDS_REVIEW},
+        STATUS_CANCELED: {STATUS_PAID, STATUS_NEEDS_REVIEW},
+        STATUS_NEEDS_REVIEW: {STATUS_PREPARING, STATUS_CANCELED},
+        STATUS_PAID: {STATUS_PREPARING, STATUS_CANCELED},
+        STATUS_PREPARING: {STATUS_SENT, STATUS_CANCELED},
+        STATUS_SENT: {STATUS_DELIVERED},
+        STATUS_DELIVERED: set(),
+    }
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -77,16 +104,24 @@ class Order(models.Model):
     authority = models.CharField(max_length=255, blank=True, null=True)
     is_paid = models.BooleanField(default=False)
     ref_id = models.CharField(max_length=255, blank=True)
-    stock_updated = models.BooleanField(
+    stock_reserved = models.BooleanField(
         default=False,
-        verbose_name="موجودی بروزرسانی شده"
+        verbose_name="موجودی رزرو شده",
+        help_text="True while this order holds (has deducted) stock for its items.",
     )
+    reserved_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="مهلت پرداخت",
+    )
+    paid_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان پرداخت")
 
     class Meta:
         ordering = ["-created"]
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["created"]),
+            models.Index(fields=["status", "reserved_until"], name="order_status_reserved_idx"),
         ]
         verbose_name = "سفارش"
         verbose_name_plural = "سفارش‌ها"
@@ -99,6 +134,36 @@ class Order(models.Model):
             # تولید شماره سفارش یکتا (مثال: ORD-8F2A1C)
             self.order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
+
+    # ------------------------------------------------------------------
+    # State machine helpers
+    # ------------------------------------------------------------------
+
+    def can_transition_to(self, new_status):
+        return new_status in self.TRANSITIONS.get(self.status, set())
+
+    def transition_to(self, new_status):
+        """Change status in memory after validating the transition. Caller saves."""
+        if not self.can_transition_to(new_status):
+            raise InvalidTransition(f"{self.status} -> {new_status}")
+        self.status = new_status
+
+    @property
+    def is_reservation_expired(self):
+        return self.reserved_until is not None and self.reserved_until <= timezone.now()
+
+    @property
+    def is_payable(self):
+        return (
+            self.status == self.STATUS_PENDING
+            and not self.is_paid
+            and self.stock_reserved
+            and not self.is_reservation_expired
+        )
+
+    @property
+    def is_cancelable_by_user(self):
+        return self.status == self.STATUS_PENDING and not self.is_paid
 
     def calculate_total(self):
         items_total = (

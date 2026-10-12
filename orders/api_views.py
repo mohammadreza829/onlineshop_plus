@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -111,30 +112,17 @@ class OrderCreateAPIView(APIView):
             Address, id=serializer.validated_data["address_id"], user=request.user
         )
 
-        name_parts = (selected_address.receiver_name or "").split()
-        cleaned_data = {
-            "first_name": name_parts[0] if name_parts else request.user.first_name,
-            "last_name": " ".join(name_parts[1:]) if len(name_parts) > 1 else request.user.last_name,
-            "phone": selected_address.receiver_phone,
-            "address": (
-                f"{selected_address.get_province_display()} - "
-                f"{selected_address.city} - {selected_address.full_address}"
-            ),
-            "postal_code": selected_address.postal_code,
-        }
-
         try:
-            order = create_order_from_cart(cart, cleaned_data, request.user)
+            order = create_order_from_cart(cart, selected_address, request.user)
         except OrderCreationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        order.address_obj = selected_address
-        order.save(update_fields=["address_obj"])
 
         return Response(
             {
                 "message": "سفارش با موفقیت ساخته شد.",
-                "payment_url": request.build_absolute_uri(f"/payment/process/{order.id}/"),
+                # POST to this URL (session auth + CSRF) to be redirected to the gateway.
+                "payment_url": request.build_absolute_uri(reverse("payment:process", args=[order.id])),
+                "reserved_until": order.reserved_until,
                 "order": OrderDetailSerializer(order).data,
             },
             status=status.HTTP_201_CREATED,

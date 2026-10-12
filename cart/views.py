@@ -1,19 +1,25 @@
-from django.shortcuts import (
-    render,
-    redirect,
-    get_object_or_404
-)
-
+from django.contrib import messages
 from django.http import JsonResponse
-
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from shop.models import Product
 
 from .cart import Cart
-from sms_ir import SmsIr
-from django.conf import settings
-from .common import smsir
+from .services import CartResult
+
+MAX_QUANTITY_PER_REQUEST = 100
+
+
+def parse_quantity(raw, default=1):
+    """Return a positive int quantity, or None for invalid input (instead of a 500)."""
+    try:
+        value = int(raw if raw not in (None, "") else default)
+    except (TypeError, ValueError):
+        return None
+    if value < 1 or value > MAX_QUANTITY_PER_REQUEST:
+        return None
+    return value
 
 def is_ajax(request):
 
@@ -68,6 +74,9 @@ def cart_response(
             data
         )
 
+    if result and result.message:
+        (messages.success if result.success else messages.error)(request, result.message)
+
     return redirect(
         "cart:cart_detail"
     )
@@ -78,10 +87,6 @@ def cart_response(
 # ======================================
 
 def cart_detail(request):
-    # api_key = 'XsfH1Zx3b9XVXTfNB0sqi3pasTdTBNLIKQHxU1fx8VdwjZG2'
-    # linenumber = '50003181890144'
-    sms_ir = SmsIr(settings.SMS_IR_API_KEY, settings.SMS_IR_LINE_NUMBER)
-    # sms_ir.send_sms('09171070235', 'سلام', linenumber,)
     cart = Cart(request)
     cart.clean()
     return render(
@@ -109,21 +114,12 @@ def cart_add(
         Product,
         id=product_id
     )
-    
-    quantity = int(
-        request.POST.get(
-            "quantity",
-            1
-        )
-    )
-    
-    result = cart.add(
-        product,
-        quantity
-    )
-    print(10)
-    # smsir.send_sms_ir(f'مشتری گرامی محصول {product} به سبد شما اضافه شد','09173838328')
-    print(11)
+
+    quantity = parse_quantity(request.POST.get("quantity"))
+    if quantity is None:
+        result = CartResult(False, "تعداد نامعتبر است.")
+    else:
+        result = cart.add(product, quantity)
     return cart_response(
         request,
         cart,

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}تایید کد پیامک‌شده{% endblock %}
+
+{% block content %}
+<div style="max-width: 420px; margin: 50px auto; padding: 25px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+    
+    <h2 style="margin-bottom: 10px; color: #333;">بررسی کد تایید</h2>
+    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+        کد تایید ارسال‌شده به شمارهٔ <span dir="ltr">{{ masked_phone }}</span> را وارد کنید.
+        <a href="{% url 'account:login' %}" style="font-size: 12px;">تغییر شماره</a>
+    </p>
+
+
+
+    <!-- فرم دریافت کد تایید -->
+    <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 20px;">
+            <input type="text"
+                   name="code"
+                   placeholder="کد ۶ رقمی را وارد کنید"
+                   inputmode="numeric"
+                   autocomplete="one-time-code"
+                   maxlength="10"
+                   required
+                   autofocus
+                   dir="ltr"
+                   style="width: 100%; padding: 12px; font-size: 18px; text-align: center; letter-spacing: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; outline: none;">
+        </div>
+
+        <button type="submit" name="action" value="verify" style="width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            تایید و ادامه
+        </button>
+    </form>
+
+    <hr style="margin: 25px 0 15px 0; border: none; border-top: 1px solid #eee;">
+
+    <!-- بخش ارسال مجدد کد به همراه تایمر -->
+    <div style="font-size: 14px;">
+        <div id="timer-box" style="color: #666; margin-bottom: 10px;">
+            امکان ارسال مجدد تا <span id="countdown" style="font-weight: bold; color: #d9534f;">02:00</span> دیگر
+        </div>
+
+        <form id="resend-btn" method="post" style="display: none;">
+            {% csrf_token %}
+            <button type="submit" name="action" value="resend" style="background: none; border: none; color: #007bff; font-weight: bold; cursor: pointer; font-size: 14px;">
+                🔄 ارسال مجدد کد تایید
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<!-- اسکریپت کنترل تایمر و فعال‌سازی دکمه ارسال مجدد -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let timeLeft = {{ cooldown|default:0 }}; // ثانیه‌های باقی‌مانده تا امکان ارسال مجدد (از سرور)
+        const countdownEl = document.getElementById('countdown');
+        const timerBox = document.getElementById('timer-box');
+        const resendBtn = document.getElementById('resend-btn');
+
+        function showResend() {
+            timerBox.style.display = 'none';
+            resendBtn.style.display = 'block';
+        }
+        if (timeLeft <= 0) { showResend(); return; }
+
+        const timer = setInterval(function() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+
+            // فرمت‌دهی دو رقمی زمان (مثلاً 01:05)
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+
+            countdownEl.textContent = minutes + ':' + seconds;
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                showResend();
+            }
+            timeLeft--;
+        }, 1000);
+    });
+</script>
+{% endblock %}

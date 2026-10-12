@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}در حال بررسی پرداخت{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; padding: 20px; text-align: center; border: 1px solid #ffeeba; border-radius: 8px; background-color: #fff3cd; color: #856404;">
+    <h2>⏳ نتیجهٔ پرداخت هنوز مشخص نیست</h2>
+    <p>
+        پاسخ درگاه پرداخت به‌موقع دریافت نشد. لطفاً دوباره پرداخت نکنید؛
+        وضعیت تراکنش به‌صورت خودکار بررسی می‌شود و نتیجه در صفحهٔ سفارش نمایش داده خواهد شد.
+    </p>
+    {% if order %}
+        <p>شماره سفارش: <strong>{{ order.order_number }}</strong></p>
+        <a href="{% url 'orders:order_detail' order.id %}" style="padding: 10px 20px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 4px;">مشاهده سفارش</a>
+    {% endif %}
+</div>
+{% endblock %}

@@ -151,7 +151,7 @@ else:
 # ==========================================
 
 AUTH_USER_MODEL = "account.ShopUser"
-LOGIN_URL = "/accounts/login/"
+LOGIN_URL = "account:login"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -187,16 +187,65 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Third-party providers
 # ==========================================
 
+# "console" logs the OTP instead of sending it (development only).
+SMS_BACKEND = env("SMS_BACKEND", "console" if DEBUG else "smsir")
 SMS_IR_API_KEY = env("SMS_IR_API_KEY")
 SMS_IR_LINE_NUMBER = env("SMS_IR_LINE_NUMBER")
+# Template-based "verify" API (recommended for OTP). Template text e.g. "کد ورود: #CODE#"
+SMS_IR_TEMPLATE_ID = env("SMS_IR_TEMPLATE_ID")
+SMS_IR_TEMPLATE_PARAM = env("SMS_IR_TEMPLATE_PARAM", "CODE")
+
+if not DEBUG and SMS_BACKEND == "console":
+    raise ImproperlyConfigured("SMS_BACKEND=console is not allowed in production.")
+if SMS_BACKEND == "smsir" and not SMS_IR_API_KEY:
+    raise ImproperlyConfigured("SMS_IR_API_KEY is required when SMS_BACKEND=smsir.")
 
 ZARINPAL = {
     "merchant_id": env("ZARINPAL_MERCHANT_ID", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),
     "sandbox": env_bool("ZARINPAL_SANDBOX", True),
+    "connect_timeout": env_int("ZARINPAL_CONNECT_TIMEOUT", 5),
+    "read_timeout": env_int("ZARINPAL_READ_TIMEOUT", 20),
 }
 
 if not DEBUG and ZARINPAL["sandbox"]:
     raise ImproperlyConfigured("ZARINPAL_SANDBOX must be False in production.")
+
+
+# ==========================================
+# Checkout & OTP
+# ==========================================
+
+# How long stock is held for an unpaid order (run `manage.py expire_orders` every minute).
+ORDER_RESERVATION_MINUTES = env_int("ORDER_RESERVATION_MINUTES", 15)
+
+OTP_LENGTH = 6
+OTP_TTL_SECONDS = env_int("OTP_TTL_SECONDS", 120)
+OTP_RESEND_COOLDOWN_SECONDS = env_int("OTP_RESEND_COOLDOWN_SECONDS", 60)
+OTP_MAX_ATTEMPTS = env_int("OTP_MAX_ATTEMPTS", 5)
+OTP_MAX_SENDS_PER_PHONE_PER_HOUR = env_int("OTP_MAX_SENDS_PER_PHONE_PER_HOUR", 5)
+OTP_MAX_SENDS_PER_IP_PER_HOUR = env_int("OTP_MAX_SENDS_PER_IP_PER_HOUR", 20)
+
+# OTP codes and rate-limit counters live in the cache. LocMem is per-process;
+# use Redis in production (phase 4) so limits are shared between workers.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "onlineshop",
+    }
+}
+
+
+# ==========================================
+# Logging
+# ==========================================
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"simple": {"format": "[{asctime}] {levelname} {name}: {message}", "style": "{"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
+    "root": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", "INFO")},
+}
 
 
 # ==========================================

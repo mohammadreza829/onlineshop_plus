@@ -29,8 +29,9 @@
 #     )
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import ShopUser
+
 from .forms import ShopUserChangeForm, ShopUserCreationForm
+from .models import ShopUser
 
 
 @admin.register(ShopUser)

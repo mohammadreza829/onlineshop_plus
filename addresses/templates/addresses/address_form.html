@@ -6,13 +6,7 @@
 <div style="max-width: 600px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
     <h2>{{ title }}</h2>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: #f8d7da; color: #721c24;">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+    
 
     <form method="post">
         {% csrf_token %}
