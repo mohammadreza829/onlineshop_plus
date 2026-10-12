@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}مدیریت آدرس‌ها{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>آدرس‌های من</h2>
+        <a href="{% url 'addresses:address_create' %}" style="padding: 8px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+            ➕ افزودن آدرس جدید
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: #d4edda; color: #155724;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if addresses %}
+        <div style="display: grid; gap: 15px;">
+            {% for addr in addresses %}
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 6px; position: relative;">
+                    {% if addr.is_default %}
+                        <span style="background-color: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; position: absolute; left: 15px; top: 15px;">پیش‌فرض</span>
+                    {% endif %}
+
+                    <h3>{{ addr.title }}</h3>
+                    <p><strong>تحویل‌گیرنده:</strong> {{ addr.receiver_name }} ({{ addr.receiver_phone }})</p>
+                    <p><strong>آدرس:</strong> استان {{ addr.get_province_display }}، شهر {{ addr.city }} - {{ addr.full_address }}</p>
+                    <p><strong>کد پستی:</strong> {{ addr.postal_code }}</p>
+
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <a href="{% url 'addresses:address_edit' addr.id %}" style="color: #007bff;">ویرایش</a> | 
+                        <a href="{% url 'addresses:address_delete' addr.id %}" style="color: red;">حذف</a>
+                        {% if not addr.is_default %}
+                            | <a href="{% url 'addresses:set_default' addr.id %}" style="color: #28a745;">تنظیم به عنوان پیش‌فرض</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="text-align: center; color: #666; margin-top: 30px;">هنوز هیچ آدرسی ثبت نکرده‌اید.</p>
+    {% endif %}
+</div>
+{% endblock %}

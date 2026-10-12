@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}پرداخت ناموفق{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; padding: 20px; text-align: center; border: 1px solid #f8d7da; border-radius: 8px; background-color: #f8d7da; color: #721c24;">
+    <h2>❌ پرداخت انجام نشد</h2>
+    {% if order %}
+        <p>شماره سفارش: <strong>{{ order.order_number }}</strong></p>
+    {% endif %}
+    <p>علت خطا: <strong>{{ error }}</strong></p>
+
+    <div style="margin-top: 20px;">
+        {% if order %}
+            <a href="{% url 'payment:process' order.id %}" style="padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;">تلاش مجدد برای پرداخت</a>
+        {% endif %}
+        <a href="{% url 'shop:product_list' %}" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">بازگشت به فروشگاه</a>
+    </div>
+</div>
+{% endblock %}

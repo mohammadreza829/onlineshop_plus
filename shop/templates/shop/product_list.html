@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+{% with item_count=cart|length%}
+<div class='cart-container'>
+    <a href='#' class = 'cart-link'>
+        🛒
+        {{item_count}}
+    </a>
+</div>
+{% endwith %}
+<h1>
+محصولات
+</h1>
+
+
+
+<!-- Search -->
+
+<form method="get">
+
+
+<input 
+type="text"
+name="q"
+placeholder="جستجوی محصول..."
+value="{{ query|default:'' }}"
+>
+
+
+<button type="submit">
+جستجو
+</button>
+
+
+</form>
+
+
+
+
+<!-- Category -->
+
+<h3>
+دسته بندی
+</h3>
+
+
+<ul>
+
+<li>
+<a href="?">
+همه
+</a>
+</li>
+
+
+{% for category in categories %}
+
+<li>
+
+<a href="?category={{ category.slug }}">
+
+{{ category.name }}
+
+</a>
+
+</li>
+
+
+{% endfor %}
+
+</ul>
+
+
+
+
+
+<!-- Products -->
+
+
+{% for product in products %}
+
+
+<div>
+
+
+<h3>
+
+<a href="{% url 'shop:product_detail' product.slug %}">
+
+{{ product.name }}
+
+</a>
+
+</h3>
+
+
+
+<p>
+قیمت:
+{{ product.final_price }}
+</p>
+
+
+
+{% if product.inventory > 0 %}
+
+<p>
+موجود
+</p>
+
+{% else %}
+
+<p>
+ناموجود
+</p>
+
+{% endif %}
+
+
+
+</div>
+
+
+
+{% empty %}
+
+
+<p>
+محصولی پیدا نشد.
+</p>
+
+
+{% endfor %}
+
+
+
+
+
+<!-- Pagination -->
+
+
+<div>
+
+
+{% if page_obj.has_previous %}
+
+<a href="?page={{ page_obj.previous_page_number }}">
+
+قبلی
+
+</a>
+
+{% endif %}
+
+
+
+
+<span>
+
+صفحه {{ page_obj.number }}
+از
+{{ page_obj.paginator.num_pages }}
+
+</span>
+
+
+
+
+{% if page_obj.has_next %}
+
+<a href="?page={{ page_obj.next_page_number }}">
+
+بعدی
+
+</a>
+
+{% endif %}
+
+
+</div>
+
+
+
+{% endblock %}

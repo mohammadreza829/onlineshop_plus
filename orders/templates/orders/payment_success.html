@@ -1,0 +1,54 @@
+
+
+
+{% block title %}
+پرداخت موفق
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="alert alert-success">
+
+        <h3>
+            پرداخت با موفقیت انجام شد
+        </h3>
+
+
+        <p>
+            سفارش شما با موفقیت ثبت شد.
+        </p>
+
+
+        <p>
+            شماره سفارش:
+            <strong>
+                {{ order.order_number }}
+            </strong>
+        </p>
+
+
+        <p>
+            کد پیگیری پرداخت:
+            <strong>
+                {{ order.ref_id }}
+            </strong>
+        </p>
+
+
+    </div>
+
+
+    <a href="{% url 'orders:order_detail' order.id %}"
+       class="btn btn-primary">
+
+        مشاهده سفارش
+
+    </a>
+
+
+</div>
+
+{% endblock %}

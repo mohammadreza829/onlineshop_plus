@@ -1,0 +1,74 @@
+{% extends "base.html" %} {% block content %}
+
+<h1>سبد خرید</h1>
+
+{% if cart %}
+
+<table>
+  <tr>
+    <th>محصول</th>
+
+    <th>تعداد</th>
+
+    <th>قیمت</th>
+
+    <th>جمع</th>
+
+    <th>عملیات</th>
+  </tr>
+
+  {% for item in cart %}
+
+  <tr>
+    <td>{{ item.product.name }}</td>
+
+    <td>{{ item.quantity }}</td>
+
+    <td>{{ item.price }}</td>
+
+    <td>{{ item.total_price }}</td>
+
+    <td>
+      <form
+        method="post"
+        action="{% url 'cart:cart_decrease' item.product.id %}"
+      >
+        {% csrf_token %}
+
+        <button>-</button>
+      </form>
+
+      <form method="post" action="{% url 'cart:cart_remove' item.product.id %}">
+        {% csrf_token %}
+
+        <button>حذف</button>
+      </form>
+    </td>
+  </tr>
+
+  {% endfor %}
+</table>
+
+<hr />
+
+<p>جمع کالاها: {{ cart.get_subtotal_price }}</p>
+
+<p>هزینه ارسال: {{ cart.get_post_price }}</p>
+
+<h3>مبلغ قابل پرداخت: {{ cart.get_total_price }}</h3>
+
+<form method="post" action="{% url 'cart:cart_clear' %}">
+  {% csrf_token %}
+
+  <button>خالی کردن سبد</button>
+  <br>
+  <a href="{% url 'orders:verify_phone' %}">ادامه فرایند خرید </a>
+  <br>
+  <a href="{% url 'shop:product_list' %}">بازگشت به فروشگاه</a>
+</form>
+{% comment %} <button> ارسال پیامک </button> {% endcomment %}
+{% else %}
+
+<p>سبد خرید خالی است.</p>
+
+{% endif %} {% endblock %}

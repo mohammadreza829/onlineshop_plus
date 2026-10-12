@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+    <h2>{{ title }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: #f8d7da; color: #721c24;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 15px;">
+            <label>عنوان آدرس (مثلاً خانه، محل کار):</label><br>
+            {{ form.title }}
+            {{ form.title.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>نام و خانوادگی تحویل‌گیرنده:</label><br>
+            {{ form.receiver_name }}
+            {{ form.receiver_name.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>شماره تماس تحویل‌گیرنده:</label><br>
+            {{ form.receiver_phone }}
+            {{ form.receiver_phone.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>استان:</label><br>
+            {{ form.province }}
+            {{ form.province.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>شهر:</label><br>
+            {{ form.city }}
+            {{ form.city.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>آدرس دقیق پستی:</label><br>
+            {{ form.full_address }}
+            {{ form.full_address.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>کد پستی (۱۰ رقمی):</label><br>
+            {{ form.postal_code }}
+            {{ form.postal_code.errors }}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>
+                {{ form.is_default }} تنظیم به عنوان آدرس پیش‌فرض
+            </label>
+        </div>
+
+        <button type="submit" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            ذخیره آدرس
+        </button>
+        <a href="{% url 'addresses:address_list' %}" style="margin-right: 10px; color: #6c757d;">انصراف</a>
+    </form>
+</div>
+{% endblock %}

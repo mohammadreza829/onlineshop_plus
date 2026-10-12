@@ -1,0 +1,48 @@
+{% extends "base.html" %} {% block content %}
+
+<h1>سفارش شماره {{ order.id }}</h1>
+
+<p>وضعیت: {{ order.get_status_display }}</p>
+
+<hr />
+
+{% for item in order.items.all %}
+
+<p>
+  {{ item.product_name }}
+
+  <br />
+
+  تعداد: {{ item.quantity }}
+
+  <br />
+
+  قیمت: {{ item.price }}
+
+  <br />
+
+  جمع: {{ item.total_price }}
+</p>
+
+<hr />
+
+{% endfor %}
+
+<h3>هزینه ارسال: {{ order.post_price }}</h3>
+
+<h2>مبلغ کل: {{ order.total_price }}</h2>
+<br />
+
+{% comment %} {% if not order.is_paid %}
+
+<a href="{% url 'orders:payment_request' order.id %}" class="btn btn-success">
+  پرداخت سفارش
+</a>
+
+{% endif %}  {% endcomment %}
+{% if not order.is_paid %}
+<a href="{% url 'payment:process' order.id %}" class="btn btn-success">
+  پرداخت سفارش
+</a>
+{% endif %}
+{% endblock %}

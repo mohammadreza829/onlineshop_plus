@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}تکمیل و ثبت سفارش{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 20px;">
+    <h2>تکمیل خرید و انتخاب آدرس تحویل</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: #f8d7da; color: #721c24;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <h3>۱. انتخاب آدرس ارسال:</h3>
+
+        {% if addresses %}
+            <div style="margin-bottom: 20px;">
+                {% for addr in addresses %}
+                    <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 6px;">
+                        <label style="cursor: pointer; display: block;">
+                            <input type="radio" name="address_id" value="{{ addr.id }}" {% if addr.is_default or forloop.first %}checked{% endif %}>
+                            <strong>{{ addr.title }}</strong> - تحویل‌گیرنده: {{ addr.receiver_name }} ({{ addr.receiver_phone }})
+                            <p style="margin: 5px 0 0 25px; color: #555;">
+                                استان {{ addr.get_province_display }}، شهر {{ addr.city }} - {{ addr.full_address }} <br>
+                                <small>کد پستی: {{ addr.postal_code }}</small>
+                            </p>
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: #d9534f;">شما هنوز آدرسی ثبت نکرده‌اید.</p>
+        {% endif %}
+
+        <div style="margin-bottom: 30px;">
+            <a href="{% url 'addresses:address_create' %}" target="_blank" style="padding: 8px 15px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                ➕ افزودن آدرس جدید
+            </a>
+            <small style="display: block; margin-top: 5px; color: #777;">(پس از ساخت آدرس جدید، این صفحه را رفرش کنید)</small>
+        </div>
+
+        <hr>
+
+        <h3>۲. خلاصه فاکتور:</h3>
+        <p>مبلغ محصولات: <strong>{{ cart.get_total_price }} تومان</strong></p>
+        <p>هزینه ارسال: <strong>{{ cart.get_post_price }} تومان</strong></p>
+        <h4>مبلغ قابل پرداخت: <span style="color: green;">{{ cart.get_final_price }} تومان</span></h4>
+
+        <div style="margin-top: 20px;">
+            <button type="submit" style="padding: 12px 25px; background-color: #28a745; color: white; border: none; font-size: 16px; border-radius: 5px; cursor: pointer;">
+                تایید آدرس و پرداخت آنلاین 💳
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% comment %} {% extends "base.html" %}
+
+
+{% block content %}
+
+
+<h1>
+ثبت سفارش
+</h1>
+
+
+<h3>
+خلاصه سبد خرید
+</h3>
+
+
+{% for item in cart %}
+
+<p>
+
+{{ item.product.name }}
+
+×
+
+{{ item.quantity }}
+
+=
+
+{{ item.total_price }}
+
+</p>
+
+{% endfor %}
+
+
+<hr>
+
+
+<p>
+هزینه ارسال:
+{{ cart.get_post_price }}
+</p>
+
+
+<p>
+مبلغ نهایی:
+{{ cart.get_total_price }}
+</p>
+
+
+
+<form method="post">
+
+{% csrf_token %}
+
+
+{{ form.as_p }}
+
+
+<button type="submit">
+
+ثبت سفارش
+
+</button>
+
+
+</form>
+
+
+
+{% endblock %} {% endcomment %}

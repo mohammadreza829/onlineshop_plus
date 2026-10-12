@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<h1>
+    محصولات دسته:
+    {{ category.name }}
+</h1>
+
+
+<div>
+
+    {% for product in products %}
+
+        <div>
+
+            {% if product.images.first %}
+                <img 
+                    src="{{ product.images.first.image.url }}"
+                    alt="{{ product.name }}"
+                    width="200"
+                >
+            {% endif %}
+
+
+            <h3>
+                <a href="{% url 'shop:product_detail' product.slug %}">
+                    {{ product.name }}
+                </a>
+            </h3>
+
+
+            {% if product.off > 0 %}
+
+                <p>
+                    قیمت اصلی:
+                    <del>
+                        {{ product.price }}
+                    </del>
+                </p>
+
+                <p>
+                    قیمت با تخفیف:
+                    {{ product.final_price }}
+                </p>
+
+            {% else %}
+
+                <p>
+                    قیمت:
+                    {{ product.price }}
+                </p>
+
+            {% endif %}
+
+
+            {% if product.inventory > 0 %}
+
+                <p>
+                    موجود
+                </p>
+
+            {% else %}
+
+                <p>
+                    ناموجود
+                </p>
+
+            {% endif %}
+
+
+        </div>
+
+
+    {% empty %}
+
+        <p>
+            محصولی در این دسته وجود ندارد.
+        </p>
+
+
+    {% endfor %}
+
+</div>
+
+
+{% endblock %}

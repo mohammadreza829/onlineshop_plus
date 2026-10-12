@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف آدرس{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 40px auto; padding: 20px; border: 1px solid #f5c6cb; border-radius: 8px; text-align: center; background-color: #f8d7da; color: #721c24;">
+    <h3>آیا از حذف آدرس «{{ address.title }}» اطمینان دارید؟</h3>
+    <p>{{ address.full_address }}</p>
+
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" style="padding: 8px 20px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">بله، حذف شود</button>
+        <a href="{% url 'addresses:address_list' %}" style="margin-right: 10px; color: #333; text-decoration: none;">انصراف</a>
+    </form>
+</div>
+{% endblock %}

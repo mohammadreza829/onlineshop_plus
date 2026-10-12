@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}فروشگاه اینترنتی{% endblock %}</title>
+    <style>
+        body { font-family: Tahoma, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; color: #333; }
+        header { background-color: #343a40; color: white; padding: 15px 0; }
+        .nav-container { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .nav-links a { color: #f8f9fa; text-decoration: none; margin-left: 15px; font-size: 14px; }
+        .nav-links a:hover { color: #ffc107; }
+        footer { background-color: #343a40; color: #aaa; text-align: center; padding: 15px 0; margin-top: 40px; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <!-- لوگو و لینک صفحه اصلی -->
+            <div>
+                <a href="{% url 'shop:home' %}" style="color: white; text-decoration: none; font-size: 1.3rem; font-weight: bold;">
+                    🛒 آنلاین شاپ
+                </a>
+            </div>
+
+            <!-- لینک‌های منوی اصلی -->
+            <div class="nav-links">
+                <a href="{% url 'shop:home' %}">صفحه اصلی</a>
+                <a href="{% url 'shop:product_list' %}">محصولات</a>
+                <a href="{% url 'cart:cart_detail' %}">سبد خرید 🛒</a>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'account:profile' %}">پروفایل کاربری ({{ user.first_name }})</a>
+                    <a href="{% url 'addresses:address_list' %}">آدرس‌ها</a>
+                {% else %}
+                    <a href="{% url 'orders:verify_phone' %}">ورود / ثبت‌نام</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <main style="min-height: 80vh;">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>تمامی حقوق این فروشگاه محفوظ است © {% now "Y" %}</p>
+    </footer>
+
+</body>
+</html>
