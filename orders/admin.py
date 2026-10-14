@@ -95,6 +95,7 @@ class OrderAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
+        ("کوپن و ارسال", {"fields": ("coupon_code", "coupon_discount", "carrier", "tracking_code")}),
         (
             "اطلاعات مشتری",
             {

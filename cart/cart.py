@@ -13,6 +13,9 @@ class Cart:
     def __init__(self, request):
         self.session = request.session
         self._cart = self.session.setdefault(CART_SESSION_ID, {})
+        if not isinstance(self._cart, dict):
+            self._cart = {}
+            self._save()
 
     def _save(self):
         self.session[CART_SESSION_ID] = self._cart
@@ -42,7 +45,7 @@ class Cart:
     def add(self, product, quantity=1, variant=None):
         if not self._valid(product, variant):
             return CartResult(False, "محصول موجود نیست یا انتخاب رنگ/سایز الزامی است.")
-        if quantity <= 0:
+        if not isinstance(quantity, int) or isinstance(quantity, bool) or quantity <= 0:
             return CartResult(False, "تعداد نامعتبر است.")
         stock = variant.inventory if variant else product.inventory
         self._cart[self._key(product, variant)] = {
@@ -159,7 +162,14 @@ class Cart:
         }
 
     def __len__(self):
-        return sum(item.get("quantity", 0) for item in self._cart.values() if isinstance(item, dict))
+        return sum(
+            item.get("quantity", 0)
+            for item in self._cart.values()
+            if isinstance(item, dict)
+            and isinstance(item.get("quantity"), int)
+            and not isinstance(item["quantity"], bool)
+            and item["quantity"] > 0
+        )
 
     def __iter__(self):
         for _key, product, variant, quantity in self._resolved():

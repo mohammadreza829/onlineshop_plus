@@ -41,10 +41,13 @@
 
         <hr>
 
+        <label for="coupon-code">کد تخفیف (اختیاری)</label>
+        <input id="coupon-code" name="coupon_code" maxlength="40" autocomplete="off">
+        <p>کد هنگام ثبت سفارش اعتبارسنجی و از مبلغ کالاها کم می‌شود؛ هزینه ارسال مشمول کوپن نیست.</p>
         <h3>۲. خلاصه فاکتور:</h3>
-        <p>مبلغ محصولات: <strong>{{ cart.get_total_price }} تومان</strong></p>
+        <p>مبلغ محصولات: <strong>{{ cart.get_subtotal_price }} تومان</strong></p>
         <p>هزینه ارسال: <strong>{{ cart.get_post_price }} تومان</strong></p>
-        <h4>مبلغ قابل پرداخت: <span style="color: green;">{{ cart.get_final_price }} تومان</span></h4>
+        <h4>مبلغ قابل پرداخت: <span style="color: green;">{{ cart.get_total_price }} تومان</span></h4>
 
         <div style="margin-top: 20px;">
             <button type="submit" style="padding: 12px 25px; background-color: #28a745; color: white; border: none; font-size: 16px; border-radius: 5px; cursor: pointer;">

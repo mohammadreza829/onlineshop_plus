@@ -24,6 +24,7 @@ def order_create(request):
     ORDER_RESERVATION_MINUTES -> redirect to the payment gateway.
     """
     cart = Cart(request)
+    cart.clean()
     if cart.is_empty:
         messages.warning(request, "سبد خرید شما خالی است.")
         return redirect("cart:cart_detail")
@@ -42,7 +43,9 @@ def order_create(request):
     selected_address = get_object_or_404(addresses_for_user(request.user), id=address_id)
 
     try:
-        order = create_order_from_cart(cart, selected_address, request.user)
+        order = create_order_from_cart(
+            cart, selected_address, request.user, coupon_code=request.POST.get("coupon_code", "")
+        )
     except OrderCreationError as exc:
         messages.error(request, str(exc))
         return redirect("cart:cart_detail")

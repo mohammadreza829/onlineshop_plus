@@ -132,6 +132,8 @@ class OperationsTests(TestCase):
         self.assertEqual(data["paid_orders_count"], 0)
         for query in [
             "from_date=invalid",
+            "from_date=9999-12-31&to_date=9999-12-31",
+            "from_date=0001-01-01&to_date=0001-01-01",
             "from_date=2025-01-01&to_date=2026-12-31",
             "from_date=2026-10-02&to_date=2026-10-01",
         ]:

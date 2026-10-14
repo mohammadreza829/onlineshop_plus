@@ -94,3 +94,8 @@ Rates: anonymous 60/minute per IP; authenticated 300/minute per user; auth scope
 Run `python manage.py migrate` to create SimpleJWT blacklist tables and schedule `python manage.py flushexpiredtokens` daily. Refresh rotation is not a device-session management system; per-device access revocation and atomic concurrent refresh guarantees are not implemented here.
 
 Real SMS, production settlement, cross-origin frontend behavior, load testing and security assessment are separate release checks. Do not infer production readiness from unit tests alone.
+
+
+## توسعه فاز ۴
+
+قرارداد variant، کوپن، نظرات/امتیاز، علاقه‌مندی، timeline/notification و staff dashboard: [امکانات فروشگاهی](shop-features.md). فیلدهای جدید additive هستند؛ محصول دارای variant باید `variant_id` دریافت کند. تخفیف کوپن در پاسخ checkout نهایی می‌شود.

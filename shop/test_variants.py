@@ -146,3 +146,45 @@ class ConcurrentVariantTests(TransactionTestCase):
         self.assertEqual(sorted(results), ["ok", "stock"])
         choice.refresh_from_db()
         self.assertEqual(choice.inventory, 0)
+
+
+class CheckoutBoundaryTests(TestCase):
+    def test_price_overflow_is_validation_error_with_rollback(self):
+        from orders.models import Order
+        from orders.services import OrderCreationError
+
+        product = make_product(price=999999999999, inventory=5)
+        user = make_user()
+        with self.assertRaises(OrderCreationError):
+            create_order_from_cart(FakeCart([(product, 2)]), make_address(user), user)
+        product.refresh_from_db()
+        self.assertEqual(product.inventory, 5)
+        self.assertFalse(Order.objects.exists())
+
+    def test_corrupted_session_quantities_do_not_break_empty_check(self):
+        cart = Cart(SimpleNamespace(session=SessionStore()))
+        cart._cart = {"1": {"quantity": "bad"}, "2": None, "3": {"quantity": True}}
+        self.assertTrue(cart.is_empty)
+        cart.clean()
+        self.assertEqual(cart._cart, {})
+
+    def test_html_variant_add_remove_and_checkout_summary(self):
+        from django.urls import reverse
+
+        product = make_product()
+        choice = variant(product)
+        user = make_user()
+        make_address(user)
+        self.client.force_login(user)
+        detail = self.client.get(reverse("shop:product_detail", args=[product.slug]))
+        self.assertContains(detail, 'name="variant_id"')
+        self.client.post(
+            reverse("cart:cart_add", args=[product.pk]), {"variant_id": choice.pk, "quantity": 1}
+        )
+        data = self.client.get(reverse("cart:cart_detail"))
+        self.assertContains(data, 'value="' + str(choice.pk) + '"')
+        summary = self.client.get(reverse("orders:order_create"))
+        self.assertContains(summary, 'name="coupon_code"')
+        self.assertContains(summary, "250000")
+        self.client.post(reverse("cart:cart_remove", args=[product.pk]), {"variant_id": choice.pk})
+        self.assertEqual(self.client.session.get("cart"), {})

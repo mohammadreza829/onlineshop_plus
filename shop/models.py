@@ -194,6 +194,8 @@ class ProductVariant(models.Model):
 
     @property
     def final_price(self):
+        if self.product.off >= 100:
+            return Decimal("0")
         return (self.price * (Decimal(100) - self.product.off) / 100).quantize(
             Decimal("1"), rounding=ROUND_HALF_UP
         )

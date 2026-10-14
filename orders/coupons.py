@@ -24,6 +24,8 @@ def _capacity(coupon, order):
 
 @transaction.atomic
 def reserve_coupon(order, code):
+    if len(code.strip()) > 40:
+        raise CouponError("کد تخفیف قابل استفاده نیست.")
     try:
         coupon = Coupon.objects.select_for_update().get(code=code.strip().upper())
     except Coupon.DoesNotExist as exc:

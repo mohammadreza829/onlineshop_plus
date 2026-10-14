@@ -120,6 +120,8 @@ class DashboardFilter(serializers.Serializer):
         today = timezone.localdate()
         first = data.get("from_date", today - timedelta(days=29))
         last = data.get("to_date", today)
+        if first.year < 2 or last.year > 9998:
+            raise serializers.ValidationError("تاریخ خارج از محدوده مجاز است.")
         if first > last or (last - first).days > 365:
             raise serializers.ValidationError("بازه باید مرتب و حداکثر ۳۶۶ روز باشد.")
         return {"from_date": first, "to_date": last}

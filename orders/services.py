@@ -3,7 +3,7 @@ Order business logic. Views/API call these functions; they never touch stock dir
 
 Stock model
 -----------
-`Product.inventory` is the *available* stock. It is decremented when an order is
+`Product.inventory` (simple products) or `ProductVariant.inventory` is the *available* stock. It is decremented when an order is
 created (reservation) and given back if the order is canceled or expires.
 Every change is a single conditional UPDATE:
 
@@ -15,6 +15,7 @@ matches 0 rows. Rows are always touched in primary-key order to avoid deadlocks.
 
 import logging
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
@@ -196,6 +197,8 @@ def create_order_from_cart(cart, address, user, coupon_code=""):
         for (product_id, variant_id), quantity in quantities.items():
             product, variant = products[product_id], variants.get(variant_id)
             price = variant.final_price if variant else product.final_price
+            if price < 0 or price * quantity > Decimal("999999999999"):
+                raise OrderCreationError("مبلغ سفارش خارج از محدوده مجاز است.")
             items.append(
                 OrderItem(
                     order=order,
@@ -218,6 +221,8 @@ def create_order_from_cart(cart, address, user, coupon_code=""):
             except CouponError as exc:
                 raise OrderCreationError(str(exc)) from exc
         order.total_price = order.calculate_total()
+        if order.total_price < 0 or order.total_price > Decimal("999999999999"):
+            raise OrderCreationError("مبلغ سفارش خارج از محدوده مجاز است.")
         order.save(update_fields=["total_price"])
         record_event(order, kind="created")
 
