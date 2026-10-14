@@ -20,6 +20,15 @@ class CartItemAddSerializer(serializers.Serializer):
         return value
 
 
+class CartQuantitySerializer(serializers.Serializer):
+    variant_id = serializers.IntegerField(required=False, min_value=1)
+    quantity = serializers.IntegerField(min_value=0, max_value=MAX_QUANTITY_PER_REQUEST)
+
+
+class CartItemSelectorSerializer(serializers.Serializer):
+    variant_id = serializers.IntegerField(required=False, min_value=1)
+
+
 class OrderItemSerializer(serializers.ModelSerializer):
     """نمایش آیتم‌های درون یک سفارش (نام و قیمت از snapshot خود آیتم خوانده می‌شود)"""
 

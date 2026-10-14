@@ -4,7 +4,7 @@ from django.conf import settings
 
 from shop.models import Product
 
-from .services import CartResult
+from .services import MAX_QUANTITY_PER_REQUEST, CartResult
 
 CART_SESSION_ID = "cart"
 POST_PRICE_LOW = Decimal("100000")
@@ -59,6 +59,25 @@ class Cart:
         }
         self._save()
         return CartResult(True, "محصول به سبد خرید اضافه شد.")
+
+    def set_quantity(self, product, quantity, variant=None):
+        """Set an existing line, not add to it. Zero removes; retries are idempotent."""
+        if (
+            not isinstance(quantity, int)
+            or isinstance(quantity, bool)
+            or not 0 <= quantity <= MAX_QUANTITY_PER_REQUEST
+        ):
+            return CartResult(False, "تعداد نامعتبر است.")
+        if quantity == 0:
+            return self.remove(product, variant) if self.has_product(product, variant) else CartResult(True)
+        if not self.has_product(product, variant):
+            return CartResult(False, "محصول در سبد وجود ندارد.", data={"missing": True})
+        if not self._valid(product, variant):
+            return CartResult(False, "محصول موجود نیست یا انتخاب رنگ/سایز معتبر نیست.")
+        stock = variant.inventory if variant else product.inventory
+        self._cart[self._key(product, variant)] = {"quantity": min(quantity, stock)}
+        self._save()
+        return CartResult(True, "تعداد بروزرسانی شد.")
 
     def decrease(self, product, quantity=1, variant=None):
         if quantity <= 0 or not self.has_product(product, variant):

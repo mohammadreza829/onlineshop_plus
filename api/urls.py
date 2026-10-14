@@ -2,16 +2,18 @@ from django.urls import path
 
 from orders.api_views import (
     CartAPIView,
-    CartItemDeleteAPIView,
+    CartItemAPIView,
     OrderCreateAPIView,
     OrderDetailAPIView,
     OrderListAPIView,
 )
 
-from . import auth_views, operations, shop_features, views
+from . import auth_views, client_contract, operations, shop_features, views
 
 app_name = "api_v1"
 urlpatterns = [
+    path("csrf/", client_contract.CSRFView.as_view(), name="csrf"),
+    path("client-options/", client_contract.ClientOptionsView.as_view(), name="client_options"),
     path("notifications/", operations.NotificationListView.as_view(), name="notifications"),
     path("notifications/<int:pk>/read/", operations.NotificationReadView.as_view(), name="notification_read"),
     path("orders/<int:pk>/tracking/", operations.TrackingView.as_view(), name="tracking"),
@@ -38,7 +40,7 @@ urlpatterns = [
     path("addresses/", views.AddressListView.as_view(), name="address_list"),
     path("addresses/<int:pk>/", views.AddressDetailView.as_view(), name="address_detail"),
     path("cart/", CartAPIView.as_view(), name="cart"),
-    path("cart/items/<int:product_id>/", CartItemDeleteAPIView.as_view(), name="cart_item"),
+    path("cart/items/<int:product_id>/", CartItemAPIView.as_view(), name="cart_item"),
     path("orders/", OrderListAPIView.as_view(), name="order_list"),
     path("orders/create/", OrderCreateAPIView.as_view(), name="order_create"),
     path("orders/<int:id>/", OrderDetailAPIView.as_view(), name="order_detail"),

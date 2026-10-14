@@ -83,6 +83,9 @@ class FeatureSerializer(serializers.ModelSerializer):
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    # Stable read contract: avoid backend-specific inferred integer bounds.
+    order = serializers.IntegerField(read_only=True, min_value=0, max_value=2147483647)
+
     class Meta:
         model = ProductImage
         fields = ["id", "image", "description", "is_primary", "order"]
@@ -196,3 +199,7 @@ class CartSerializer(serializers.Serializer):
     total_price = serializers.DecimalField(max_digits=16, decimal_places=0)
     item_count = serializers.IntegerField()
     is_empty = serializers.BooleanField()
+
+
+class CartQuantityResponseSerializer(CartSerializer):
+    quantity_clamped = serializers.BooleanField()

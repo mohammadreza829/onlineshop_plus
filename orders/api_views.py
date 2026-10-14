@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from addresses.selectors import addresses_for_user
 from api.serializers import (
+    CartQuantityResponseSerializer,
     CartSerializer,
     CheckoutResponseSerializer,
     MessageSerializer,
@@ -17,7 +18,13 @@ from cart.cart import Cart
 from shop.models import Product, ProductVariant
 
 from .selectors import orders_for_user
-from .serializers import CartItemAddSerializer, OrderCreateSerializer, OrderDetailSerializer
+from .serializers import (
+    CartItemAddSerializer,
+    CartItemSelectorSerializer,
+    CartQuantitySerializer,
+    OrderCreateSerializer,
+    OrderDetailSerializer,
+)
 from .services import OrderCreationError, create_order_from_cart
 
 
@@ -64,7 +71,7 @@ class CartAPIView(APIView):
         response_status = status.HTTP_200_OK if result.success else status.HTTP_400_BAD_REQUEST
         return Response({"detail": result.message}, status=response_status)
 
-    @extend_schema(responses=MessageSerializer, tags=["Cart"])
+    @extend_schema(parameters=[CartItemSelectorSerializer], responses=MessageSerializer, tags=["Cart"])
     def delete(self, request, product_id=None):
         """حذف یک محصول مشخص یا پاک‌سازی کل سبد خرید"""
         cart = Cart(request)
@@ -73,7 +80,7 @@ class CartAPIView(APIView):
             return Response({"detail": "سبد خرید کاملاً پاک‌سازی شد."}, status=status.HTTP_200_OK)
 
         product = get_object_or_404(Product, id=product_id)
-        params = CartItemAddSerializer(data={"product_id": product_id, **request.query_params.dict()})
+        params = CartItemSelectorSerializer(data=request.query_params)
         params.is_valid(raise_exception=True)
         variant_id = params.validated_data.get("variant_id")
         variant = get_object_or_404(ProductVariant, pk=variant_id, product=product) if variant_id else None
@@ -159,6 +166,35 @@ class OrderCreateAPIView(APIView):
 
 class CartItemDeleteAPIView(CartAPIView):
     http_method_names = ["delete", "options"]
+
+
+class CartItemAPIView(CartItemDeleteAPIView):
+    http_method_names = ["patch", "delete", "options"]
+
+    @extend_schema(
+        request=CartQuantitySerializer, responses={200: CartQuantityResponseSerializer}, tags=["Cart"]
+    )
+    def patch(self, request, product_id):
+        params = CartQuantitySerializer(data=request.data)
+        params.is_valid(raise_exception=True)
+        values = params.validated_data
+        product = get_object_or_404(Product, pk=product_id)
+        variant_id = values.get("variant_id")
+        variant = get_object_or_404(ProductVariant, pk=variant_id, product=product) if variant_id else None
+        result = Cart(request).set_quantity(product, values["quantity"], variant=variant)
+        if not result.success:
+            return Response({"detail": result.message}, status=404 if result.data.get("missing") else 400)
+        response = self.get(request)
+        applied = next(
+            (
+                item["quantity"]
+                for item in response.data["items"]
+                if item["product_id"] == product_id and item["variant_id"] == variant_id
+            ),
+            0,
+        )
+        response.data["quantity_clamped"] = applied != values["quantity"]
+        return response
 
 
 @extend_schema(exclude=True)
