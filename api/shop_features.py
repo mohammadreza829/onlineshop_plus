@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from shop.models import Favorite, Product, Review
+from shop.recommendations import recommended_products
 from shop.selectors import catalog_products
 from shop.services import save_review
 
@@ -88,3 +89,24 @@ class FavoriteView(APIView):
     def delete(self, request, pk):
         Favorite.objects.filter(user=request.user, product_id=pk).delete()
         return Response(status=204)
+
+
+class RecommendationFilterSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(default=8, min_value=1, max_value=20)
+
+
+class RecommendationView(generics.GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ProductSerializer
+
+    @extend_schema(
+        parameters=[RecommendationFilterSerializer],
+        responses=ProductSerializer(many=True),
+        tags=["Recommendations"],
+    )
+    def get(self, request, slug):
+        params = RecommendationFilterSerializer(data=request.query_params)
+        params.is_valid(raise_exception=True)
+        product = get_object_or_404(Product, slug=slug, is_active=True)
+        products = recommended_products(product, limit=params.validated_data["limit"])
+        return Response(self.get_serializer(products, many=True).data)

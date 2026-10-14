@@ -253,6 +253,8 @@ else:
     CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "onlineshop"}
     }
+RECOMMENDATIONS_CACHE_SECONDS = max(0, min(env_int("RECOMMENDATIONS_CACHE_SECONDS", 60), 300))
+
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_CACHE_ALIAS = "default"
 HEALTHCHECK_REQUIRE_WORKER = env_bool("HEALTHCHECK_REQUIRE_WORKER", False)
