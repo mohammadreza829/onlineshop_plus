@@ -2,7 +2,7 @@ from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -165,27 +165,27 @@ class SalesDashboardView(APIView):
             status=Payment.STATUS_SUCCESS, verified_at__gte=first, verified_at__lt=last
         )
 
-        def amount(qs, field):
-            return str(qs.aggregate(total=Sum(field))["total"] or Decimal(0))
-
+        statuses = list(created.values("status").annotate(total=Count("pk")).order_by("status"))
+        paid_totals = paid.aggregate(
+            total=Count("pk"),
+            value=Sum("total_price"),
+            canceled_value=Sum("total_price", filter=Q(status=Order.STATUS_CANCELED)),
+        )
+        payment_totals = successful.aggregate(
+            value=Sum("amount"), refund_value=Sum("amount", filter=Q(needs_refund=True))
+        )
         return Response(
             {
                 **dates,
                 "time_zone": str(timezone.get_current_timezone()),
                 "currency": "TOMAN",
-                "orders_created": created.count(),
-                "created_orders_by_status": list(
-                    created.values("status").annotate(total=Count("pk")).order_by("status")
-                ),
-                "paid_orders_count": paid.count(),
-                "paid_orders_value": amount(paid, "total_price"),
-                "canceled_paid_orders_value": amount(
-                    paid.filter(status=Order.STATUS_CANCELED), "total_price"
-                ),
-                "successful_payment_amount": amount(successful, "amount"),
-                "duplicate_payment_refund_flag_amount": amount(
-                    successful.filter(needs_refund=True), "amount"
-                ),
+                "orders_created": sum(row["total"] for row in statuses),
+                "created_orders_by_status": statuses,
+                "paid_orders_count": paid_totals["total"],
+                "paid_orders_value": str(paid_totals["value"] or Decimal(0)),
+                "canceled_paid_orders_value": str(paid_totals["canceled_value"] or Decimal(0)),
+                "successful_payment_amount": str(payment_totals["value"] or Decimal(0)),
+                "duplicate_payment_refund_flag_amount": str(payment_totals["refund_value"] or Decimal(0)),
                 "needs_review_orders_all_time": Order.objects.filter(
                     status=Order.STATUS_NEEDS_REVIEW
                 ).count(),

@@ -22,6 +22,11 @@ urlpatterns = [
     path("auth/token/refresh/", auth_views.RefreshView.as_view(), name="token_refresh"),
     path("auth/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("me/", views.ProfileView.as_view(), name="profile"),
+    path(
+        "products/<slug:slug>/recommendations/",
+        shop_features.RecommendationView.as_view(),
+        name="recommendations",
+    ),
     path("products/", views.ProductListView.as_view(), name="product_list"),
     path("products/<slug:slug>/", views.ProductDetailView.as_view(), name="product_detail"),
     path("products/<slug:slug>/reviews/", shop_features.ReviewListView.as_view(), name="reviews"),

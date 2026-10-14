@@ -13,3 +13,8 @@ __pycache__
 .ruff_cache
 .pytest_cache
 *.log
+
+# Backups and benchmark runtime data are not source/image content.
+*.dump
+benchmark-artifacts/
+*.rdb

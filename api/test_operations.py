@@ -138,3 +138,13 @@ class OperationsTests(TestCase):
             "from_date=2026-10-02&to_date=2026-10-01",
         ]:
             self.assertEqual(self.client.get("/api/v1/staff/sales/?" + query).status_code, 400)
+
+
+class DashboardQueryBudgetTests(TestCase):
+    def test_staff_dashboard_has_fixed_six_query_budget(self):
+        staff = make_user(is_staff=True)
+        client = APIClient()
+        client.force_authenticate(staff)
+        with self.assertNumQueries(6):
+            result = client.get("/api/v1/staff/sales/")
+        self.assertEqual(result.status_code, 200)

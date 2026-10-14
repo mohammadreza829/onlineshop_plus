@@ -106,6 +106,7 @@ class Order(models.Model):
     class Meta:
         ordering = ["-created"]
         indexes = [
+            models.Index(fields=["is_paid", "paid_at"], name="order_paid_at_idx"),
             models.Index(fields=["status"]),
             models.Index(fields=["created"]),
             models.Index(fields=["status", "reserved_until"], name="order_status_reserved_idx"),
@@ -181,6 +182,7 @@ class OrderItem(models.Model):
     )
 
     class Meta:
+        indexes = [models.Index(fields=["product", "order"], name="item_product_order_idx")]
         verbose_name = "آیتم سفارش"
 
         verbose_name_plural = "آیتم‌های سفارش"

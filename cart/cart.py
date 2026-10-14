@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.conf import settings
+
 from shop.models import Product
 
 from .services import CartResult
@@ -11,6 +13,7 @@ POST_PRICE_HIGH = Decimal("200000")
 
 class Cart:
     def __init__(self, request):
+        self._entries_cache = None
         self.session = request.session
         self._cart = self.session.setdefault(CART_SESSION_ID, {})
         if not isinstance(self._cart, dict):
@@ -18,6 +21,7 @@ class Cart:
             self._save()
 
     def _save(self):
+        self._entries_cache = None
         self.session[CART_SESSION_ID] = self._cart
         self.session.modified = True
 
@@ -47,6 +51,8 @@ class Cart:
             return CartResult(False, "محصول موجود نیست یا انتخاب رنگ/سایز الزامی است.")
         if not isinstance(quantity, int) or isinstance(quantity, bool) or quantity <= 0:
             return CartResult(False, "تعداد نامعتبر است.")
+        if not self.has_product(product, variant) and len(self._cart) >= settings.CART_MAX_LINES:
+            return CartResult(False, "سبد خرید به سقف تعداد ردیف رسیده است.")
         stock = variant.inventory if variant else product.inventory
         self._cart[self._key(product, variant)] = {
             "quantity": min(self.get_quantity(product, variant) + quantity, stock)
@@ -75,17 +81,23 @@ class Cart:
         return CartResult(True, "محصول حذف شد.")
 
     def clear(self):
+        self._entries_cache = None
         self.session.pop(CART_SESSION_ID, None)
         self._cart = {}
         self.session.modified = True
 
     def _resolved(self):
+        if self._entries_cache is None:
+            self._entries_cache = list(self._load_entries())
+        return iter(self._entries_cache)
+
+    def _load_entries(self):
         ids = {int(k.split(":")[0]) for k in self._cart if k.split(":")[0].isdigit()}
         products = {
             p.pk: p
             for p in Product.objects.filter(pk__in=ids)
             .select_related("category")
-            .prefetch_related("images", "features", "variants")
+            .prefetch_related("variants")
         }
         for key, item in list(self._cart.items()):
             try:

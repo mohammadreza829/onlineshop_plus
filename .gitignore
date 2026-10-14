@@ -184,3 +184,10 @@ cython_debug/
 media/
 staticfiles/
 private_media/
+
+# Local Redis persistence is runtime data, never source.
+*.rdb
+
+# Backups and benchmark runtime data are not source/image content.
+*.dump
+benchmark-artifacts/

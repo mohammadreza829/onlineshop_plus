@@ -75,6 +75,7 @@ if not DEBUG:
 
 INSTALLED_APPS = [
     "django.contrib.admin",
+    "django.contrib.postgres",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -252,6 +253,10 @@ else:
     CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "onlineshop"}
     }
+CART_MAX_LINES = max(1, min(env_int("CART_MAX_LINES", 100), 500))
+SLOW_QUERY_MS = max(1, env_int("SLOW_QUERY_MS", 250))
+RECOMMENDATIONS_CACHE_SECONDS = max(0, min(env_int("RECOMMENDATIONS_CACHE_SECONDS", 60), 300))
+
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_CACHE_ALIAS = "default"
 HEALTHCHECK_REQUIRE_WORKER = env_bool("HEALTHCHECK_REQUIRE_WORKER", False)
