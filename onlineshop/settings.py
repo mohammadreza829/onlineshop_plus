@@ -333,6 +333,7 @@ REST_FRAMEWORK = {
         "auth": "10/min",
         "checkout": "10/min",
         "cart": "60/min",
+        "shop_write": "30/min",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

@@ -8,7 +8,7 @@ from orders.api_views import (
     OrderListAPIView,
 )
 
-from . import auth_views, views
+from . import auth_views, shop_features, views
 
 app_name = "api_v1"
 urlpatterns = [
@@ -19,6 +19,10 @@ urlpatterns = [
     path("me/", views.ProfileView.as_view(), name="profile"),
     path("products/", views.ProductListView.as_view(), name="product_list"),
     path("products/<slug:slug>/", views.ProductDetailView.as_view(), name="product_detail"),
+    path("products/<slug:slug>/reviews/", shop_features.ReviewListView.as_view(), name="reviews"),
+    path("products/<slug:slug>/reviews/mine/", shop_features.MyReviewView.as_view(), name="my_review"),
+    path("products/<int:pk>/favorite/", shop_features.FavoriteView.as_view(), name="favorite"),
+    path("favorites/", shop_features.FavoriteListView.as_view(), name="favorites"),
     path("categories/", views.CategoryListView.as_view(), name="category_list"),
     path("categories/<slug:slug>/", views.CategoryDetailView.as_view(), name="category_detail"),
     path("addresses/", views.AddressListView.as_view(), name="address_list"),

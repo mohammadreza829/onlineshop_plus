@@ -52,13 +52,27 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    rating_average = serializers.FloatField(read_only=True, allow_null=True)
+    rating_count = serializers.IntegerField(read_only=True)
     inventory = serializers.IntegerField(source="available_stock", read_only=True)
     category = CategorySerializer(read_only=True)
     final_price = serializers.DecimalField(max_digits=12, decimal_places=0, read_only=True)
 
     class Meta:
         model = Product
-        fields = ["id", "sku", "name", "slug", "price", "off", "final_price", "inventory", "category"]
+        fields = [
+            "id",
+            "sku",
+            "name",
+            "slug",
+            "price",
+            "off",
+            "final_price",
+            "inventory",
+            "category",
+            "rating_average",
+            "rating_count",
+        ]
         read_only_fields = fields
 
 

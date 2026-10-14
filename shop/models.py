@@ -197,3 +197,45 @@ class ProductVariant(models.Model):
         return (self.price * (Decimal(100) - self.product.off) / 100).quantize(
             Decimal("1"), rounding=ROUND_HALF_UP
         )
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey("account.ShopUser", on_delete=models.CASCADE, related_name="favorites")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="favorites")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "product"], name="unique_favorite")]
+
+    def __str__(self):
+        return f"{self.user_id}/{self.product_id}"
+
+
+class Review(models.Model):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    user = models.ForeignKey("account.ShopUser", on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    text = models.TextField(max_length=2000)
+    status = models.CharField(
+        max_length=10,
+        choices=[(PENDING, "در انتظار بررسی"), (APPROVED, "تایید"), (REJECTED, "رد")],
+        default=PENDING,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "product"], name="unique_customer_review"),
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1, rating__lte=5), name="valid_review_rating"
+            ),
+        ]
+        indexes = [models.Index(fields=["product", "status", "created"])]
+
+    def __str__(self):
+        return f"{self.product_id}: {self.rating}"

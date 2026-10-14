@@ -1,20 +1,40 @@
 """Read-side catalog queries shared by HTML and API. Prices are whole Toman."""
 
-from django.db.models import Case, Exists, F, IntegerField, OuterRef, Q, Subquery, Sum, Value, When
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 
-from .models import Category, Product, ProductVariant
+from .models import Category, Product, ProductVariant, Review
 
 
 def catalog_products(
     *, search="", category=None, stock=None, ordering="-created", min_price=None, max_price=None
 ):
+    ratings = (
+        Review.objects.filter(product_id=OuterRef("pk"), status=Review.APPROVED)
+        .values("product_id")
+        .annotate(average=Avg("rating"), total=Count("pk"))
+    )
     variants = ProductVariant.objects.filter(product_id=OuterRef("pk"))
     totals = variants.filter(is_active=True).values("product_id").annotate(total=Sum("inventory"))
     qs = (
         Product.objects.filter(is_active=True)
         .select_related("category")
         .annotate(
+            rating_average=Subquery(ratings.values("average")),
+            rating_count=Coalesce(Subquery(ratings.values("total")), Value(0)),
             has_variants=Exists(variants),
             stock_available=Case(
                 When(has_variants=True, then=Coalesce(Subquery(totals.values("total")), Value(0))),
