@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AnimatePresence, motion, MotionConfig } from "motion/react";
 const ToastContext = createContext<(message: string) => void>(() => {});
 export const useToast = () => useContext(ToastContext);
 export function Providers({ children }: { children: ReactNode }) {
@@ -41,26 +40,16 @@ export function Providers({ children }: { children: ReactNode }) {
   }, [client]);
   return (
     <QueryClientProvider client={client}>
-      <MotionConfig reducedMotion="user">
-        <ToastContext.Provider value={toast}>
-          {children}
-          <div className="toasts" aria-live="polite">
-            <AnimatePresence>
-              {message && (
-                <motion.div
-                  className="toast"
-                  initial={{ y: 12, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  key={message}
-                >
-                  {message}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </ToastContext.Provider>
-      </MotionConfig>
+      <ToastContext.Provider value={toast}>
+        {children}
+        <div className="toasts" aria-live="polite">
+          {message && (
+            <div className="toast" key={message}>
+              {message}
+            </div>
+          )}
+        </div>
+      </ToastContext.Provider>
     </QueryClientProvider>
   );
 }

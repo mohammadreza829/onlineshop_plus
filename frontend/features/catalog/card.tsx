@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Shirt, ArrowUpLeft } from "lucide-react";
+import { Shirt } from "lucide-react";
 import type { Product, ProductDetail } from "@/lib/api/types";
 import { useApi } from "@/lib/api/hooks";
 import { toman } from "@/lib/format";
@@ -43,14 +43,7 @@ export function ProductCard({ product: p }: { product: Product }) {
           </h3>
           {p.inventory <= 0 && <span className="badge">ناموجود</span>}
         </div>
-        <div className="price">
-          {toman(p.final_price)}
-          <ArrowUpLeft
-            size={14}
-            className="desktop-only"
-            style={{ marginTop: 8 }}
-          />
-        </div>
+        <div className="price">{toman(p.final_price)}</div>
       </div>
     </article>
   );

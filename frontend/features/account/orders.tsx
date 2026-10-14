@@ -93,7 +93,7 @@ export function OrderDetail({ id }: { id: string }) {
   const o = q.data;
   return (
     <div className="stack">
-      <div className="spread">
+      <div className="spread order-heading">
         <h2>
           سفارش <bdi dir="ltr">{o.order_number}</bdi>
         </h2>

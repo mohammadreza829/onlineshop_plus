@@ -357,13 +357,13 @@ test("basic WCAG checks on desktop and mobile and dialog", async ({ page }) => {
   expect(result.violations).toEqual([]);
 });
 
-test("desktop selective Lenis: dialog focus/scroll-lock, route cleanup and live reduced-motion", async ({
+test("native scrolling: dialog focus/scroll-lock, route cleanup and live reduced-motion", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.getByRole("button", { name: "باز کردن سبد خرید" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect
@@ -392,7 +392,49 @@ test("desktop selective Lenis: dialog focus/scroll-lock, route cleanup and live 
   await expect(page).toHaveURL(/\/products$/);
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.goBack();
-  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
+});
+
+test("catalog service failure stays distinct from an empty catalog", async ({
+  page,
+}) => {
+  await mockAPI(page);
+  await page.route("**/api/shop/products/?*", (r) =>
+    r.fulfill({ status: 503, json: { code: "LOCAL_SETUP_REQUIRED" } }),
+  );
+  await page.goto("/products");
+  await expect(page.locator(".notice[role=alert]")).toContainText(
+    "npm run doctor",
+  );
+  await expect(
+    page.getByRole("heading", { name: "لباسی با این انتخاب پیدا نشد" }),
+  ).toHaveCount(0);
+});
+test("home editorial is accessible and never represented as catalogue merchandise", async ({
+  page,
+}) => {
+  const hydration: string[] = [];
+  page.on("console", (message) => {
+    if (/hydrat|Minified React error #(418|423|425)/i.test(message.text()))
+      hydration.push(message.text());
+  });
+  page.on("pageerror", (error) => {
+    if (/hydrat|Minified React error #(418|423|425)/i.test(error.message))
+      hydration.push(error.message);
+  });
+  await mockAPI(page);
+  await page.goto("/");
+  await expect(page.locator(".hero-visual figcaption")).toContainText(
+    "نه کالای کاتالوگ",
+  );
+  expect(hydration).toEqual([]);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    expect(result.violations).toEqual([]);
+  }
 });

@@ -148,5 +148,7 @@
     "public reachable gateway callback origin",
     "LCP mobile lab still above 2.5s target",
     "approved brand/domain/images/sales policies and SMS/gateway configuration"
-  ]
+  ],
+  "historical": true,
+  "superseded_by": "redesign-validation.md"
 }

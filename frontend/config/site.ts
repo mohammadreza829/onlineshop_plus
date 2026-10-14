@@ -1,20 +1,18 @@
-/** Temporary brand and public editorial copy: no invented promises/contact/legal data. */
+/** Public copy and temporary identity. No invented policies, ratings or promises. */
 export const site = {
   name: "آنلاین شاپ پلاس",
   latinName: "ONLINE SHOP PLUS",
-  description: "فروشگاه اینترنتی لباس",
+  description: "انتخاب لباس، به سادگی.",
   legalContentReady: false,
   hero: {
-    eyebrow: "آنلاین شاپ پلاس / کاتالوگ لباس",
-    title: "فروشگاه",
-    accent: "لباس",
+    eyebrow: "یک نگاه تازه به انتخاب لباس",
+    title: "سبک شما،",
+    accent: "انتخاب شما.",
     description:
-      "محصولات، رنگ‌ها و سایزهای موجود را ببینید و انتخاب خود را به سبد اضافه کنید.",
+      "میان لباس‌ها بگردید، جزئیات را ببینید و رنگ و سایز مناسب خودتان را انتخاب کنید.",
     cta: "مشاهدهٔ لباس‌ها",
-    artWord: "پوشش",
-    artLabel: "CLOTHING CATALOG",
+    artLabel: "THE EVERYDAY EDIT",
   },
-  /** Current Django default; synchronize if deployment overrides OTP_RESEND_COOLDOWN_SECONDS. 429 Retry-After remains authoritative. */
   otpResendSeconds: 60,
 } as const;
 export const accountLinks = [

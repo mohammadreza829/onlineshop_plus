@@ -34,7 +34,7 @@ function Filters({ close }: { close?: () => void }) {
     close?.();
   }
   return (
-    <form onSubmit={submit} key={q.toString()}>
+    <form className="filter-form" onSubmit={submit} key={q.toString()}>
       <label className="field" htmlFor={id + "category"}>
         دسته‌بندی
         <select

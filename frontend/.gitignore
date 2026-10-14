@@ -16,3 +16,5 @@ public/favicon.ico
 !lib/**
 !app/api/media/
 !app/api/media/**
+
+public/editorial/*.webp

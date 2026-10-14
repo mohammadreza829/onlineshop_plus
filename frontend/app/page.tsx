@@ -1,8 +1,14 @@
 import { site } from "@/config/site";
 import Link from "next/link";
-import { ArrowUpLeft } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowUpLeft,
+  ArrowLeft,
+  SlidersHorizontal,
+  ShoppingBag,
+  Palette,
+} from "lucide-react";
 import { HomeCatalog } from "@/features/catalog/home";
-import { HomeMotion } from "@/lib/motion/home-motion";
 import { publicAPI, siteURL } from "@/lib/api/server";
 import type { Page, Product, Category } from "@/lib/api/types";
 import type { Metadata } from "next";
@@ -17,37 +23,89 @@ export default async function Home() {
     publicAPI<Page<Category>>("categories/?roots_only=true&limit=100"),
   ]);
   return (
-    <div className="container">
-      <section className="hero" aria-labelledby="home-title">
-        <div className="hero-frame">
-          <div className="hero-copy">
-            <p className="eyebrow">{site.hero.eyebrow}</p>
-            <h1 id="home-title">
-              {site.hero.title}
-              <br />
-              <em>{site.hero.accent}</em>
-            </h1>
-            <p className="subtle">{site.hero.description}</p>
+    <div className="home">
+      <section className="container hero" aria-labelledby="home-title">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            <span className="eyebrow-line" />
+            {site.hero.eyebrow}
+          </p>
+          <h1 id="home-title">
+            {site.hero.title}
+            <br />
+            <span>{site.hero.accent}</span>
+          </h1>
+          <p className="hero-description">{site.hero.description}</p>
+          <div className="hero-actions">
             <Link className="button" href="/products">
               {site.hero.cta}
-              <ArrowUpLeft size={20} />
+              <ArrowUpLeft size={19} />
+            </Link>
+            <Link className="text-link" href="/products?ordering=-created">
+              تازه‌ترین‌ها
+              <ArrowLeft size={18} />
             </Link>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <span className="art-number">لباس / انتخاب</span>
-            <span className="type-mark">{site.hero.artWord}</span>
-            <span className="art-label" lang="en" dir="ltr">
-              {site.hero.artLabel}
+          <div className="hero-note">
+            <span lang="en" dir="ltr">
+              LESS NOISE. MORE YOU.
             </span>
+            <span>جزئیات، پیش از انتخاب.</span>
           </div>
         </div>
-        <div className="hero-bottom">
-          <span>کاتالوگ لباس · انتخاب رنگ و سایز</span>
-          <span>جزئیات هر انتخاب، پیش از خرید</span>
-        </div>
-        <HomeMotion />
+        <figure className="hero-visual">
+          <Image
+            src="/editorial/home.webp"
+            width={1264}
+            height={848}
+            alt="ترکیب بصری پارچه و پوشاک در فضای روشن؛ تصویر editorial، نه محصول کاتالوگ"
+            preload
+            fetchPriority="high"
+            unoptimized
+            sizes="(max-width: 767px) 100vw, 55vw"
+          />
+          <figcaption>
+            <span lang="en" dir="ltr">
+              {site.hero.artLabel}
+            </span>
+            <span>تصویر الهام‌بخش، نه کالای کاتالوگ</span>
+          </figcaption>
+        </figure>
       </section>
-      <HomeCatalog initialProducts={products} initialCategories={categories} />
+      <div className="container experience-strip" aria-label="راهنمای انتخاب">
+        <div>
+          <SlidersHorizontal size={20} />
+          <span>جست‌وجو، مطابق انتخاب شما</span>
+        </div>
+        <div>
+          <Palette size={20} />
+          <span>رنگ و سایز از اطلاعات محصول</span>
+        </div>
+        <div>
+          <ShoppingBag size={20} />
+          <span>مرور انتخاب‌ها، پیش از سفارش</span>
+        </div>
+      </div>
+      <div className="container">
+        <HomeCatalog
+          initialProducts={products}
+          initialCategories={categories}
+        />
+      </div>
+      <section className="container editorial-note">
+        <p className="eyebrow" lang="en" dir="ltr">
+          YOUR STYLE, YOUR WAY
+        </p>
+        <h2>
+          انتخاب خوب،
+          <br />
+          از دیدن جزئیات شروع می‌شود.
+        </h2>
+        <Link href="/products" className="text-link">
+          کشف لباس‌ها
+          <ArrowUpLeft size={18} />
+        </Link>
+      </section>
     </div>
   );
 }

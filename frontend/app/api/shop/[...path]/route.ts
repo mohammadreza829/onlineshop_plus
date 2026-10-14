@@ -17,7 +17,12 @@ async function handler(
     );
   } catch {
     return NextResponse.json(
-      { detail: "اتصال فروشگاه پیکربندی نشده یا موقتاً در دسترس نیست." },
+      {
+        detail: "اتصال فروشگاه پیکربندی نشده یا موقتاً در دسترس نیست.",
+        ...(process.env.NODE_ENV !== "production"
+          ? { code: "LOCAL_SETUP_REQUIRED" }
+          : {}),
+      },
       { status: 503, headers: { "Cache-Control": "private, no-store" } },
     );
   }
