@@ -80,6 +80,17 @@ DJANGO_DB_ENGINE=postgresql python manage.py test   # همهٔ تست‌ها، �
 
 گزارش بررسی فاز ۱، دستورات بازتولید و محدودیت‌های انتشار: [اعتبارسنجی فاز ۱](docs/phase-1-validation.md).
 
+## زیرساخت
+
+راهنمای [Docker، Redis، Celery، health check و CI](docs/infrastructure.md). برای اجرای stack محلی پس از تنظیم `.env`:
+
+```bash
+docker compose up -d --build --wait
+docker compose exec web python manage.py check_infrastructure --with-worker
+```
+
+وقتی Celery beat فعال است، cronهای قدیمی انقضای سفارش/استعلام پرداخت را هم‌زمان اجرا نکنید. این تنظیمات به معنی استقرار خودکار production نیستند.
+
 ## API
 
 API اصلی نسخه‌دار در `/api/v1/` است؛ ورود OTP/JWT، کاتالوگ، آدرس‌ها، سبد و سفارش‌ها. [قرارداد API و نکات امنیتی](docs/api-v1.md) را پیش از ساخت کلاینت بخوانید. سبد همچنان session/cookie-bound است و با JWT بین دستگاه‌ها همگام نمی‌شود.

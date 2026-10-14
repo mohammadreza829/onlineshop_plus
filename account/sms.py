@@ -38,7 +38,7 @@ def _smsir_post(path, payload):
     return body
 
 
-def send_otp(phone, code):
+def deliver_otp(phone, code):
     backend = settings.SMS_BACKEND
     if backend == "console":
         logger.warning("[console SMS] OTP for %s: %s", phone, code)
@@ -66,3 +66,18 @@ def send_otp(phone, code):
                 "mobiles": [phone],
             },
         )
+
+
+def send_otp(phone, code):
+    if not settings.SMS_ASYNC:
+        return deliver_otp(phone, code)
+    from .tasks import deliver_otp_task, encrypt_payload
+
+    try:
+        deliver_otp_task.apply_async(
+            args=[encrypt_payload(phone, code)],
+            expires=settings.OTP_TTL_SECONDS,
+            argsrepr="('<encrypted OTP>',)",
+        )
+    except Exception as exc:
+        raise SMSError("SMS queue unavailable") from exc

@@ -1,0 +1,84 @@
+x-app: &app
+  build: .
+  image: onlineshop-plus:local
+  env_file: .env
+  environment: &app-env
+    DJANGO_DB_ENGINE: postgresql
+    DJANGO_DB_HOST: db
+    DJANGO_DB_PORT: "5432"
+    CACHE_URL: redis://redis:6379/1
+    CELERY_BROKER_URL: redis://redis:6379/0
+    SMS_ASYNC: "True"
+    HEALTHCHECK_REQUIRE_WORKER: "True"
+  init: true
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  read_only: true
+  tmpfs: ["/tmp"]
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DJANGO_DB_NAME:-onlineshop}
+      POSTGRES_USER: ${DJANGO_DB_USER:-onlineshop_admin}
+      POSTGRES_PASSWORD: ${DJANGO_DB_PASSWORD:?Set DJANGO_DB_PASSWORD in .env}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+  migrate:
+    <<: *app
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    environment:
+      <<: *app-env
+      HEALTHCHECK_REQUIRE_WORKER: "False"
+    restart: "no"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  web:
+    <<: *app
+    ports: ["127.0.0.1:${WEB_PORT:-8000}:8000"]
+    volumes: ["media_data:/app/media"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready/', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+  worker:
+    <<: *app
+    command: ["celery", "-A", "onlineshop", "worker", "--loglevel=INFO", "--concurrency=2"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  beat:
+    <<: *app
+    command: ["celery", "-A", "onlineshop", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
