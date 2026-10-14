@@ -12,7 +12,7 @@ All money values are whole **Toman**, encoded as decimal strings. The gateway ad
 - `account/services.py`: common OTP authentication for session login and JWT.
 - `addresses/services.py`: address updates and serialized default-address decisions; HTML and API share phone/postcode validation.
 - `/orders/api/v1/...` remains a compatibility alias for the existing cart/order API. It is omitted from the canonical schema. The old item-delete route only accepts DELETE; its previous accidental GET/POST behavior is intentionally removed.
-- Existing HTML routes remain session-authenticated; frontend redesign is phase 6. The only template change here converts default-address mutation from a GET link to a CSRF-protected POST form.
+- Existing HTML routes remain session-authenticated; frontend redesign is phase 6. The phase-2 template change converted default-address mutation from a GET link to a CSRF-protected POST form.
 
 ## Authentication
 
@@ -39,7 +39,7 @@ Django session authentication remains available. Session-authenticated unsafe re
 | GET | `categories/` | `search`, `parent` (positive id), `roots_only=true\|false` |
 | GET | `categories/{slug}/` | Category id/name/slug/parent |
 
-Products include base `price`, percent `off`, computed `final_price`, available inventory and category. Inactive products are never listed or retrievable. Search matches product name/description/SKU. Category filtering is exact, not recursive. Price ranges and price sorting use the **base price before discount**, not final_price. Allowed ordering: `price`, `-price`, `created`, `-created`, `name`, `-name`; default `-created`, with primary-key tie-breaking. Invalid filter values return 400.
+Products include base `price`, percent `off`, computed `final_price`, available inventory and category. Inactive products are never listed or retrievable. Search matches product name/description/SKU. Category filtering is exact, not recursive. Price ranges and price sorting use the **base price before discount**, not final_price. Allowed ordering: `price`, `-price`, `created`, `-created`, `name`, `-name`, `relevance`; default `-created`, with primary-key tie-breaking. Invalid filter values return 400.
 
 Category search matches name/slug; `parent` and `roots_only=true` cannot be combined. Detail includes direct parent id, not a recursively expanded tree.
 
@@ -64,7 +64,8 @@ List responses use `{ "count": ..., "next": ..., "previous": ..., "results": [..
 | GET | `cart/` | Items + item_count, subtotal, discount, post_price, total_price, is_empty |
 | POST | `cart/` | `{ "product_id": 1, "quantity": 2 }`; adds 1–100 units per request, capped by available stock |
 | DELETE | `cart/` | Clear cart |
-| DELETE | `cart/items/{product_id}/` | Remove one product |
+| PATCH | `cart/items/{product_id}/` | Absolute `quantity` 0–100; optional `variant_id`; 0 removes, positive missing line → 404. Returns fresh cart + `quantity_clamped` |
+| DELETE | `cart/items/{product_id}/` | Remove one line; optional `variant_id` query parameter |
 | GET | `orders/` | Own paginated orders; optional valid `status` filter |
 | GET | `orders/{id}/` | Own order and immutable line snapshots |
 | POST | `orders/create/` | `{ "address_id": 1 }`; create/reserve from current cookie cart → 201 |
@@ -104,3 +105,10 @@ Real SMS, production settlement, cross-origin frontend behavior, load testing an
 ## توسعه فاز ۵
 
 `ordering=relevance` برای search PostgreSQL و `GET /api/v1/products/{slug}/recommendations/?limit=8` (سقف ۲۰، عمومی) اضافه شد. [قرارداد جستجو/پیشنهاد و کش](backend-performance.md). داده مالی/خصوصی در shared cache قرار نمی‌گیرد؛ تصمیم نوع فرانت به گفت‌وگو با صاحب پروژه موکول است.
+
+## Frontend handoff
+
+- `GET csrf/` sets the CSRF cookie and returns `csrf_token` for `X-CSRFToken` on session-authenticated writes.
+- `GET client-options/` returns currency/time zone, cart/pagination constraints and the existing five province choices, with no secrets.
+- Canonical and legacy API responses are `private, no-store`. No cross-origin policy or frontend framework is selected.
+- [Integration guide](frontend-handoff.md) and [checked-in OpenAPI](openapi-v1.yaml). A snapshot test prevents unnoticed contract drift.

@@ -4,7 +4,7 @@
 
 ## گیت‌های باقی‌مانده انتشار
 
-- [ ] نتیجه hosted CI و بازبینی/ادغام آخرین PR؛ read دسترسی check-runs اتصال فعلی محدود است.
+- [ ] تایید نتیجه hosted CI پیش از انتشار؛ بازبینی و ادغام کد جداگانه انجام می‌شود، اما read دسترسی check-runs اتصال فعلی محدود است و موفقیت محلی به معنی موفقیت hosted CI نیست.
 - [ ] چرخش و ابطال secretهای ثبت‌شده در تاریخچه قبلی (Django/SMS/DB و هر کلید مرتبط)، تایید نگهداری امن و اصل حداقل دسترسی.
 - [ ] دامنه، proxy/TLS، trusted origins/hosts، HSTS متناسب، cookie/CSRF، storage امن media و محدودیت upload.
 - [ ] Redis امن/خصوصی، بودجه حافظه و noeviction متناسب با OTP/قفل/صف؛ capacity و outage drill؛ database least privilege.
