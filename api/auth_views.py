@@ -39,6 +39,8 @@ class OTPRequestView(PublicAuthView):
         serializer.is_valid(raise_exception=True)
         try:
             otp.send_code(serializer.validated_data["phone"], ip=request.META.get("REMOTE_ADDR"))
+        except otp.OTPUnavailable as exc:
+            raise SMSUnavailable(detail=str(exc)) from exc
         except otp.OTPError as exc:
             if exc.retry_after:
                 raise Throttled(wait=exc.retry_after, detail=str(exc)) from exc
@@ -53,6 +55,8 @@ class OTPVerifyView(PublicAuthView):
         serializer.is_valid(raise_exception=True)
         try:
             user = authenticate_otp(**serializer.validated_data)
+        except otp.OTPUnavailable as exc:
+            raise SMSUnavailable(detail=str(exc)) from exc
         except otp.OTPError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         refresh = RefreshToken.for_user(user)

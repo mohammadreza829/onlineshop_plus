@@ -1,4 +1,3 @@
-import time
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -85,9 +84,10 @@ class OTPServiceTests(TestCase):
     def test_code_expires(self):
         otp.send_code(self.phone)
         code = self.sent_code()
-        with mock.patch("time.time", return_value=time.time() + 121):
-            with self.assertRaises(otp.OTPError):
-                otp.verify_code(self.phone, code)
+        # Expire through the cache API: Redis uses server time, not Python's clock.
+        cache.touch(otp._key("code", self.phone), timeout=0)
+        with self.assertRaises(otp.OTPError):
+            otp.verify_code(self.phone, code)
 
     def test_persian_digits_in_code_are_accepted(self):
         with mock.patch("account.otp.secrets.randbelow", return_value=123456):

@@ -62,6 +62,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = env_int("DJANGO_HSTS_SECONDS", 60 * 60 * 24 * 30)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = env_bool("DJANGO_HSTS_PRELOAD", False)
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
@@ -89,10 +90,13 @@ INSTALLED_APPS = [
     "addresses",
     "payment",
     "api",
+    "onlineshop.apps.InfrastructureConfig",
 ]
 
 MIDDLEWARE = [
+    "onlineshop.observability.RequestLogMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -228,11 +232,65 @@ OTP_MAX_SENDS_PER_IP_PER_HOUR = env_int("OTP_MAX_SENDS_PER_IP_PER_HOUR", 20)
 
 # OTP codes and rate-limit counters live in the cache. LocMem is per-process;
 # use Redis in production (phase 3) so limits are shared between workers.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "onlineshop",
+CACHE_URL = env("CACHE_URL")
+if not DEBUG and not CACHE_URL:
+    raise ImproperlyConfigured("CACHE_URL is required in production (shared Redis cache).")
+if CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": CACHE_URL,
+            "KEY_PREFIX": env("CACHE_KEY_PREFIX", "onlineshop"),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "SOCKET_CONNECT_TIMEOUT": 2,
+                "SOCKET_TIMEOUT": 2,
+            },
+        }
     }
+else:
+    CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "onlineshop"}
+    }
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_CACHE_ALIAS = "default"
+HEALTHCHECK_REQUIRE_WORKER = env_bool("HEALTHCHECK_REQUIRE_WORKER", False)
+SMS_ASYNC = env_bool("SMS_ASYNC", not DEBUG)
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", False)
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_TIMEOUT = 3
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "visibility_timeout": 3600,
+    "socket_connect_timeout": 3,
+    "socket_timeout": 3,
+}
+CELERY_TASK_PUBLISH_RETRY_POLICY = {
+    "max_retries": 2,
+    "interval_start": 0,
+    "interval_step": 1,
+    "interval_max": 1,
+}
+CELERY_TASK_SOFT_TIME_LIMIT = 60
+CELERY_TASK_TIME_LIMIT = 90
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "expire-reservations": {"task": "orders.tasks.expire_unpaid_orders", "schedule": 60.0},
+    "reconcile-payments": {"task": "payment.tasks.dispatch_stale_payments", "schedule": 300.0},
+    "worker-heartbeat": {"task": "onlineshop.tasks.worker_heartbeat", "schedule": 30.0},
+    "blacklist-cleanup": {"task": "onlineshop.tasks.clean_expired_tokens", "schedule": 86400.0},
+}
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
 
@@ -243,9 +301,10 @@ CACHES = {
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {"simple": {"format": "[{asctime}] {levelname} {name}: {message}", "style": "{"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
+    "formatters": {"json": {"()": "onlineshop.observability.JSONFormatter"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
     "root": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", "INFO")},
+    "loggers": {"django.server": {"handlers": ["console"], "level": "INFO", "propagate": False}},
 }
 
 
@@ -295,3 +354,5 @@ SIMPLE_JWT = {
 }
 if not DEBUG and len(SIMPLE_JWT["SIGNING_KEY"]) < 32:
     raise ImproperlyConfigured("JWT_SIGNING_KEY must contain at least 32 characters.")
+
+SECURE_REDIRECT_EXEMPT = [r"^health/(live|ready)/$"]

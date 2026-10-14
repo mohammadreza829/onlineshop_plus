@@ -16,12 +16,16 @@ production use a shared cache (Redis, phase 3) so limits hold across workers.
 import logging
 import re
 import secrets
+import threading
 import time
+from contextlib import contextmanager
+from functools import wraps
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.utils.crypto import constant_time_compare, salted_hmac
+from redis.exceptions import RedisError
 
 from .sms import SMSError, send_otp
 
@@ -29,6 +33,38 @@ logger = logging.getLogger(__name__)
 
 _DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 _MOBILE_RE = re.compile(r"^09\d{9}$")
+
+
+_local_lock = threading.RLock()
+
+
+@contextmanager
+def _phone_lock(phone):
+    lock_factory = getattr(cache, "lock", None)
+    if lock_factory:
+        lock = lock_factory(_key("lock", phone), timeout=30, blocking_timeout=2)
+        if not lock.acquire(blocking=True):
+            raise OTPError("درخواست دیگری در حال پردازش است. دوباره تلاش کنید.", retry_after=2)
+        try:
+            yield
+        finally:
+            lock.release()
+    else:
+        # Development-only fallback; production requires shared Redis.
+        with _local_lock:
+            yield
+
+
+def phone_locked(func):
+    @wraps(func)
+    def wrapped(phone, *args, **kwargs):
+        try:
+            with _phone_lock(phone):
+                return func(phone, *args, **kwargs)
+        except RedisError:
+            raise OTPUnavailable("سرویس ورود موقتاً در دسترس نیست.") from None
+
+    return wrapped
 
 
 def normalize_phone(raw):
@@ -56,6 +92,10 @@ class OTPError(Exception):
         self.retry_after = retry_after
 
 
+class OTPUnavailable(OTPError):
+    pass
+
+
 def _key(kind, ident):
     return f"otp:{kind}:{ident}"
 
@@ -80,6 +120,7 @@ def cooldown_remaining(phone):
     return max(0, int(until - time.time())) if until else 0
 
 
+@phone_locked
 def send_code(phone, ip=None):
     """Generate, store and send a code. Raises OTPError when rate limited or SMS fails."""
     remaining = cooldown_remaining(phone)
@@ -107,6 +148,7 @@ def send_code(phone, ip=None):
         raise OTPError("ارسال پیامک با خطا مواجه شد. لطفاً دوباره تلاش کنید.") from None
 
 
+@phone_locked
 def verify_code(phone, code):
     """Return True when the code is correct (and burn it). Raises OTPError when locked/expired."""
     stored = cache.get(_key("code", phone))

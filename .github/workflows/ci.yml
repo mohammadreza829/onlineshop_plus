@@ -1,0 +1,85 @@
+name: CI
+"on":
+  push:
+    branches: [main, "phase-*/**"]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: onlineshop
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d onlineshop"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DJANGO_DEBUG: "True"
+      DJANGO_DB_ENGINE: postgresql
+      DJANGO_DB_NAME: onlineshop
+      DJANGO_DB_USER: postgres
+      DJANGO_DB_PASSWORD: ci-only-password
+      DJANGO_DB_HOST: 127.0.0.1
+      CACHE_URL: redis://127.0.0.1:6379/1
+      CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+      SMS_BACKEND: console
+      SMS_ASYNC: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Ephemeral check-only secret
+        run: python -c "import secrets,os; open(os.environ['GITHUB_ENV'],'a').write('DJANGO_SECRET_KEY='+secrets.token_urlsafe(64)+'\n')"
+      - run: pre-commit run --all-files
+      - run: pip check
+      - run: python manage.py migrate --noinput
+      - run: python manage.py check
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yaml
+      - run: python manage.py collectstatic --noinput
+      - name: PostgreSQL and shared Redis tests
+        run: python manage.py test --noinput
+      - name: SQLite compatibility
+        env:
+          DJANGO_DB_ENGINE: sqlite
+          CACHE_URL: ""
+        run: python manage.py test --noinput
+      - name: Production settings check (no external sends)
+        env:
+          DJANGO_DEBUG: "False"
+          DJANGO_ALLOWED_HOSTS: example.com
+          SMS_BACKEND: smsir
+          SMS_IR_API_KEY: ci-placeholder-not-used
+          ZARINPAL_SANDBOX: "False"
+          DJANGO_HSTS_PRELOAD: "True"
+        run: python manage.py check --deploy --fail-level WARNING
+      - name: Real Celery worker smoke test
+        run: |
+          celery -A onlineshop worker --pool=solo --loglevel=WARNING --pidfile=/tmp/ci-celery.pid > /tmp/celery.log 2>&1 &
+          worker=$!
+          trap 'kill "$worker" 2>/dev/null || true' EXIT
+          python manage.py check_infrastructure --with-worker --timeout 30
+      - name: Docker build and Compose validation
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          docker build -t onlineshop-plus:ci .
