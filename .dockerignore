@@ -18,3 +18,11 @@ __pycache__
 *.dump
 benchmark-artifacts/
 *.rdb
+
+# Frontend source is separate; never include Node caches or local credentials in Django images.
+frontend/node_modules/
+frontend/.next/
+frontend/.env*
+frontend/test-results/
+frontend/playwright-report/
+frontend/coverage/
