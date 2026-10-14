@@ -10,7 +10,8 @@ from .models import Order, OrderItem
 class CartItemAddSerializer(serializers.Serializer):
     """سریالایزر افزودن محصول به سبد خرید"""
 
-    product_id = serializers.IntegerField()
+    variant_id = serializers.IntegerField(required=False, min_value=1)
+    product_id = serializers.IntegerField(min_value=1)
     quantity = serializers.IntegerField(default=1, min_value=1, max_value=MAX_QUANTITY_PER_REQUEST)
 
     def validate_product_id(self, value):
@@ -24,7 +25,19 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "product_name", "product_sku", "price", "quantity", "total_price"]
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "product_sku",
+            "variant",
+            "variant_sku",
+            "variant_color",
+            "variant_size",
+            "price",
+            "quantity",
+            "total_price",
+        ]
         read_only_fields = fields
 
 
@@ -48,6 +61,10 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "postal_code",
             "post_price",
             "total_price",
+            "coupon_code",
+            "coupon_discount",
+            "carrier",
+            "tracking_code",
             "status",
             "status_display",
             "is_paid",
@@ -63,6 +80,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 class OrderCreateSerializer(serializers.Serializer):
     """ورودی ثبت سفارش جدید توسط کاربر"""
 
+    coupon_code = serializers.RegexField(r"^[a-zA-Z0-9_-]{1,40}$", required=False)
     address_id = serializers.IntegerField()
 
     def validate_address_id(self, value):

@@ -7,7 +7,7 @@ from addresses.models import Address
 from addresses.validation import normalize_postal_code
 from orders.models import Order
 from orders.serializers import OrderDetailSerializer
-from shop.models import Category, Product, ProductFeatures, ProductImage
+from shop.models import Category, Product, ProductFeatures, ProductImage, ProductVariant
 
 
 class PhoneSerializer(serializers.Serializer):
@@ -52,12 +52,27 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    rating_average = serializers.FloatField(read_only=True, allow_null=True)
+    rating_count = serializers.IntegerField(read_only=True)
+    inventory = serializers.IntegerField(source="available_stock", read_only=True)
     category = CategorySerializer(read_only=True)
     final_price = serializers.DecimalField(max_digits=12, decimal_places=0, read_only=True)
 
     class Meta:
         model = Product
-        fields = ["id", "sku", "name", "slug", "price", "off", "final_price", "inventory", "category"]
+        fields = [
+            "id",
+            "sku",
+            "name",
+            "slug",
+            "price",
+            "off",
+            "final_price",
+            "inventory",
+            "category",
+            "rating_average",
+            "rating_count",
+        ]
         read_only_fields = fields
 
 
@@ -73,12 +88,22 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ["id", "image", "description", "is_primary", "order"]
 
 
+class VariantSerializer(serializers.ModelSerializer):
+    final_price = serializers.DecimalField(max_digits=12, decimal_places=0, read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = ["id", "sku", "color", "size", "price", "final_price", "inventory", "is_active"]
+        read_only_fields = fields
+
+
 class ProductDetailSerializer(ProductSerializer):
+    variants = VariantSerializer(many=True, read_only=True)
     features = FeatureSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta(ProductSerializer.Meta):
-        fields = [*ProductSerializer.Meta.fields, "description", "features", "images"]
+        fields = [*ProductSerializer.Meta.fields, "description", "features", "images", "variants"]
         read_only_fields = fields
 
 
@@ -155,6 +180,7 @@ class PaymentLinkSerializer(serializers.Serializer):
 
 
 class CartItemSerializer(serializers.Serializer):
+    variant_id = serializers.IntegerField(allow_null=True)
     product_id = serializers.IntegerField()
     name = serializers.CharField()
     price = serializers.DecimalField(max_digits=12, decimal_places=0)

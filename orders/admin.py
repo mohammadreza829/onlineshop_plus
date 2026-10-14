@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.db.models import Count
 from django.utils.html import format_html
 
-from .models import Order, OrderItem
+from .models import Coupon, CouponUse, Order, OrderItem
 from .services import OrderActionError, advance_order, retry_reservation
 
 # ==========================================
@@ -19,11 +19,19 @@ class OrderItemInline(admin.TabularInline):
 
     readonly_fields = (
         "product",
+        "variant",
+        "variant_sku",
+        "variant_color",
+        "variant_size",
+        "product_sku",
         "product_name",
         "price",
         "quantity",
         "total_price",
     )
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 # ==========================================
@@ -68,6 +76,12 @@ class OrderAdmin(admin.ModelAdmin):
     # Status / payment fields are read-only: they may only change through the
     # actions below, which go through the state machine and keep stock consistent.
     readonly_fields = (
+        "total_price",
+        "post_price",
+        "carrier",
+        "tracking_code",
+        "coupon_code",
+        "coupon_discount",
         "order_number",
         "status",
         "is_paid",
@@ -81,6 +95,7 @@ class OrderAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
+        ("کوپن و ارسال", {"fields": ("coupon_code", "coupon_discount", "carrier", "tracking_code")}),
         (
             "اطلاعات مشتری",
             {
@@ -204,3 +219,22 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.action(description="تلاش مجدد برای رزرو موجودی (سفارش‌های نیازمند بررسی)")
     def retry_stock_reservation(self, request, queryset):
         self._apply(request, queryset, retry_reservation)
+
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ["code", "kind", "value", "is_active", "ends_at", "total_limit", "per_user_limit"]
+    list_filter = ["is_active", "kind"]
+    search_fields = ["code"]
+
+
+@admin.register(CouponUse)
+class CouponUseAdmin(admin.ModelAdmin):
+    list_display = ["coupon", "order", "state", "over_capacity", "created"]
+    readonly_fields = ["coupon", "order", "state", "over_capacity", "created"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -3,10 +3,21 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from shop.models import Product
+from shop.models import Product, ProductVariant
 
 from .cart import Cart
 from .services import CartResult, parse_quantity
+
+
+def selected_variant(request, product):
+    value = request.POST.get("variant_id")
+    if not value:
+        return None
+    if not value.isdigit():
+        from django.http import Http404
+
+        raise Http404
+    return get_object_or_404(ProductVariant, pk=int(value), product=product)
 
 
 def is_ajax(request):
@@ -75,7 +86,7 @@ def cart_add(request, product_id):
     if quantity is None:
         result = CartResult(False, "تعداد نامعتبر است.")
     else:
-        result = cart.add(product, quantity)
+        result = cart.add(product, quantity, variant=selected_variant(request, product))
     return cart_response(request, cart, result)
 
 
@@ -90,7 +101,7 @@ def cart_decrease(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
 
-    result = cart.decrease(product)
+    result = cart.decrease(product, variant=selected_variant(request, product))
 
     return cart_response(request, cart, result)
 
@@ -106,7 +117,7 @@ def cart_remove(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
 
-    result = cart.remove(product)
+    result = cart.remove(product, variant=selected_variant(request, product))
 
     return cart_response(request, cart, result)
 

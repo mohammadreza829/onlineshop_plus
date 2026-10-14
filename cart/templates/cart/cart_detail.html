@@ -20,7 +20,7 @@
   {% for item in cart %}
 
   <tr>
-    <td>{{ item.product.name }}</td>
+    <td>{{ item.product.name }}{% if item.variant %} — {{ item.variant.color }} / {{ item.variant.size }}{% endif %}</td>
 
     <td>{{ item.quantity }}</td>
 
@@ -34,12 +34,14 @@
         action="{% url 'cart:cart_decrease' item.product.id %}"
       >
         {% csrf_token %}
+        {% if item.variant %}<input type="hidden" name="variant_id" value="{{ item.variant.id }}">{% endif %}
 
         <button>-</button>
       </form>
 
       <form method="post" action="{% url 'cart:cart_remove' item.product.id %}">
         {% csrf_token %}
+        {% if item.variant %}<input type="hidden" name="variant_id" value="{{ item.variant.id }}">{% endif %}
 
         <button>حذف</button>
       </form>

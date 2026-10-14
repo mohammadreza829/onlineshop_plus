@@ -14,7 +14,7 @@ from api.serializers import (
     OrderFilterSerializer,
 )
 from cart.cart import Cart
-from shop.models import Product
+from shop.models import Product, ProductVariant
 
 from .selectors import orders_for_user
 from .serializers import CartItemAddSerializer, OrderCreateSerializer, OrderDetailSerializer
@@ -38,6 +38,7 @@ class CartAPIView(APIView):
         items = [
             {
                 "product_id": item["product"].id,
+                "variant_id": item["variant"].id if item.get("variant") else None,
                 "name": item["product"].name,
                 "price": str(item["price"]),
                 "quantity": item["quantity"],
@@ -54,7 +55,11 @@ class CartAPIView(APIView):
         serializer.is_valid(raise_exception=True)
 
         product = get_object_or_404(Product, id=serializer.validated_data["product_id"], is_active=True)
-        result = Cart(request).add(product=product, quantity=serializer.validated_data["quantity"])
+        variant_id = serializer.validated_data.get("variant_id")
+        variant = get_object_or_404(ProductVariant, pk=variant_id, product=product) if variant_id else None
+        result = Cart(request).add(
+            product=product, quantity=serializer.validated_data["quantity"], variant=variant
+        )
 
         response_status = status.HTTP_200_OK if result.success else status.HTTP_400_BAD_REQUEST
         return Response({"detail": result.message}, status=response_status)
@@ -68,7 +73,11 @@ class CartAPIView(APIView):
             return Response({"detail": "سبد خرید کاملاً پاک‌سازی شد."}, status=status.HTTP_200_OK)
 
         product = get_object_or_404(Product, id=product_id)
-        result = cart.remove(product)
+        params = CartItemAddSerializer(data={"product_id": product_id, **request.query_params.dict()})
+        params.is_valid(raise_exception=True)
+        variant_id = params.validated_data.get("variant_id")
+        variant = get_object_or_404(ProductVariant, pk=variant_id, product=product) if variant_id else None
+        result = cart.remove(product, variant=variant)
         response_status = status.HTTP_200_OK if result.success else status.HTTP_404_NOT_FOUND
         return Response({"detail": result.message}, status=response_status)
 
@@ -124,7 +133,12 @@ class OrderCreateAPIView(APIView):
         )
 
         try:
-            order = create_order_from_cart(cart, selected_address, request.user)
+            order = create_order_from_cart(
+                cart,
+                selected_address,
+                request.user,
+                coupon_code=serializer.validated_data.get("coupon_code", ""),
+            )
         except OrderCreationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 

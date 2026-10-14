@@ -11,8 +11,11 @@
 
 
 <p>
-قیمت:
-{{ product.final_price }}
+{% if product.variants.all %}
+قیمت و موجودی هر رنگ/سایز در انتخاب زیر مشخص است.
+{% else %}
+قیمت: {{ product.final_price }}
+{% endif %}
 </p>
 
 
@@ -58,6 +61,17 @@ action="{% url 'cart:cart_add' product.id %}"
 >
 
 {% csrf_token %}
+{% if product.variants.all %}
+<label for="variant-choice">رنگ / سایز</label>
+<select id="variant-choice" name="variant_id" required>
+<option value="">انتخاب کنید</option>
+{% for variant in product.variants.all %}
+{% if variant.is_active and variant.inventory > 0 %}
+<option value="{{ variant.id }}">{{ variant.color }} / {{ variant.size }} — {{ variant.final_price }} تومان — موجودی {{ variant.inventory }}</option>
+{% endif %}
+{% endfor %}
+</select>
+{% endif %}
 
 
 <input

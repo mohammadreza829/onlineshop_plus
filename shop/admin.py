@@ -1,11 +1,16 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Category, Product, ProductFeatures, ProductImage
+from .models import Category, Product, ProductFeatures, ProductImage, ProductVariant, Review
 
 # ==========================================
 # Product Image Inline
 # ==========================================
+
+
+class VariantInline(admin.TabularInline):
+    model = ProductVariant
+    extra = 0
 
 
 class ImageInline(admin.TabularInline):
@@ -160,6 +165,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
 
     inlines = [
+        VariantInline,
         ImageInline,
         FeatureInline,
     ]
@@ -168,3 +174,22 @@ class ProductAdmin(admin.ModelAdmin):
         return obj.final_price
 
     discount_price.short_description = "قیمت بعد از تخفیف"
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ["product", "user", "rating", "status", "created"]
+    list_filter = ["status", "rating"]
+    readonly_fields = ["product", "user", "rating", "text", "created", "updated"]
+    actions = ["approve", "reject"]
+
+    def has_add_permission(self, request):
+        return False
+
+    @admin.action(description="تایید نظرات انتخاب‌شده")
+    def approve(self, request, queryset):
+        queryset.update(status=Review.APPROVED)
+
+    @admin.action(description="رد نظرات انتخاب‌شده")
+    def reject(self, request, queryset):
+        queryset.update(status=Review.REJECTED)

@@ -12,7 +12,7 @@
   {% endif %}
   {% if order.status == "needs_review" %}
     <p style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px;">
-      پرداخت شما ثبت شده است اما موجودی یکی از کالاها تمام شده؛ همکاران ما برای تامین کالا یا بازگشت وجه با شما تماس می‌گیرند.
+      پرداخت شما ثبت شده است اما موجودی یا سهمیه کوپن سفارش نیاز به بررسی دارد؛ برای پیگیری با پشتیبانی تماس بگیرید.
     </p>
   {% endif %}
   {% if order.is_payable %}
@@ -28,7 +28,7 @@
     <tbody>
       {% for item in order.items.all %}
         <tr>
-          <td>{{ item.product_name }}</td>
+          <td>{{ item.product_name }}{% if item.variant_sku %} — {{ item.variant_color }} / {{ item.variant_size }}{% endif %}</td>
           <td>{{ item.price }} تومان</td>
           <td>{{ item.quantity }}</td>
           <td>{{ item.total_price }} تومان</td>
@@ -37,6 +37,8 @@
     </tbody>
   </table>
 
+  {% if order.coupon_code %}<p>کوپن {{ order.coupon_code }}: {{ order.coupon_discount }} تومان تخفیف</p>{% endif %}
+  {% if order.tracking_code %}<p>ارسال با {{ order.carrier }} — کد رهگیری: <span dir="ltr">{{ order.tracking_code }}</span></p>{% endif %}
   <p>هزینه ارسال: {{ order.post_price }} تومان</p>
   <h2>مبلغ کل: {{ order.total_price }} تومان</h2>
   <p>ارسال به: {{ order.first_name }} {{ order.last_name }} — {{ order.address }} — کد پستی {{ order.postal_code }}</p>

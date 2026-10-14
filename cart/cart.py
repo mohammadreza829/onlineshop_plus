@@ -5,7 +5,6 @@ from shop.models import Product
 from .services import CartResult
 
 CART_SESSION_ID = "cart"
-
 POST_PRICE_LOW = Decimal("100000")
 POST_PRICE_HIGH = Decimal("200000")
 
@@ -13,240 +12,144 @@ POST_PRICE_HIGH = Decimal("200000")
 class Cart:
     def __init__(self, request):
         self.session = request.session
-
-        cart = self.session.get(CART_SESSION_ID)
-
-        if cart is None:
-            cart = {}
-
-            self.session[CART_SESSION_ID] = cart
-
-        self._cart = cart
-
-    # ==============================
-    # Session
-    # ==============================
+        self._cart = self.session.setdefault(CART_SESSION_ID, {})
+        if not isinstance(self._cart, dict):
+            self._cart = {}
+            self._save()
 
     def _save(self):
+        self.session[CART_SESSION_ID] = self._cart
         self.session.modified = True
 
-    # ==============================
-    # Helpers
-    # ==============================
+    @staticmethod
+    def _key(product, variant=None):
+        return f"{product.pk}:{variant.pk}" if variant else str(product.pk)
 
-    def has_product(self, product):
-        return str(product.id) in self._cart
+    def has_product(self, product, variant=None):
+        return self._key(product, variant) in self._cart
 
-    def get_item(self, product):
-        return self._cart.get(str(product.id))
+    def get_item(self, product, variant=None):
+        return self._cart.get(self._key(product, variant))
 
-    def get_quantity(self, product):
-        item = self.get_item(product)
+    def get_quantity(self, product, variant=None):
+        return (self.get_item(product, variant) or {}).get("quantity", 0)
 
-        if not item:
-            return 0
-
-        return item["quantity"]
-
-    # ==============================
-    # Add
-    # ==============================
-
-    def add(self, product, quantity=1):
+    @staticmethod
+    def _valid(product, variant):
         if not product.is_active:
-            return CartResult(False, "محصول فعال نیست.")
+            return False
+        if variant:
+            return variant.product_id == product.pk and variant.is_active and variant.inventory > 0
+        return not product.variants.exists() and product.inventory > 0
 
-        if product.inventory <= 0:
-            return CartResult(False, "محصول موجود نیست.")
-
-        if quantity <= 0:
+    def add(self, product, quantity=1, variant=None):
+        if not self._valid(product, variant):
+            return CartResult(False, "محصول موجود نیست یا انتخاب رنگ/سایز الزامی است.")
+        if not isinstance(quantity, int) or isinstance(quantity, bool) or quantity <= 0:
             return CartResult(False, "تعداد نامعتبر است.")
-
-        current_quantity = self.get_quantity(product)
-
-        new_quantity = current_quantity + quantity
-
-        if new_quantity > product.inventory:
-            new_quantity = product.inventory
-
-        self._cart[str(product.id)] = {"quantity": new_quantity}
-
+        stock = variant.inventory if variant else product.inventory
+        self._cart[self._key(product, variant)] = {
+            "quantity": min(self.get_quantity(product, variant) + quantity, stock)
+        }
         self._save()
-
         return CartResult(True, "محصول به سبد خرید اضافه شد.")
 
-    # ==============================
-    # Decrease
-    # ==============================
-
-    def decrease(self, product, quantity=1):
-        if not self.has_product(product):
-            return CartResult(False, "محصول در سبد خرید وجود ندارد.")
-
-        current_quantity = self.get_quantity(product)
-
-        current_quantity -= quantity
-
-        if current_quantity <= 0:
-            del self._cart[str(product.id)]
-
+    def decrease(self, product, quantity=1, variant=None):
+        if quantity <= 0 or not self.has_product(product, variant):
+            return CartResult(False, "محصول در سبد خرید وجود ندارد یا تعداد نامعتبر است.")
+        key = self._key(product, variant)
+        remaining = self.get_quantity(product, variant) - quantity
+        if remaining <= 0:
+            del self._cart[key]
         else:
-            self._cart[str(product.id)]["quantity"] = current_quantity
-
+            self._cart[key]["quantity"] = remaining
         self._save()
-
         return CartResult(True, "سبد خرید بروزرسانی شد.")
 
-    # ==============================
-    # Remove
-    # ==============================
-
-    def remove(self, product):
-        if not self.has_product(product):
+    def remove(self, product, variant=None):
+        key = self._key(product, variant)
+        if key not in self._cart:
             return CartResult(False, "محصول در سبد وجود ندارد.")
-
-        del self._cart[str(product.id)]
-
+        del self._cart[key]
         self._save()
-
         return CartResult(True, "محصول حذف شد.")
-
-    # ==============================
-    # Clear
-    # ==============================
 
     def clear(self):
         self.session.pop(CART_SESSION_ID, None)
         self._cart = {}
-        self._save()
+        self.session.modified = True
 
-    # ==============================
-    # Clean Cart
-    # ==============================
+    def _resolved(self):
+        ids = {int(k.split(":")[0]) for k in self._cart if k.split(":")[0].isdigit()}
+        products = {
+            p.pk: p
+            for p in Product.objects.filter(pk__in=ids)
+            .select_related("category")
+            .prefetch_related("images", "features", "variants")
+        }
+        for key, item in list(self._cart.items()):
+            try:
+                parts = key.split(":")
+                if len(parts) not in (1, 2):
+                    raise ValueError
+                product = products[int(parts[0])]
+                variants = {v.pk: v for v in product.variants.all()}
+                variant = variants[int(parts[1])] if len(parts) == 2 else None
+                qty = item["quantity"]
+                if not isinstance(qty, int) or isinstance(qty, bool) or qty <= 0:
+                    raise ValueError
+                valid = product.is_active and (
+                    variant.is_active and variant.inventory > 0
+                    if variant
+                    else not variants and product.inventory > 0
+                )
+                if not valid:
+                    raise ValueError
+                if variant:
+                    variant.product = product
+                yield key, product, variant, qty
+            except (KeyError, ValueError, TypeError, AttributeError):
+                yield key, None, None, 0
 
     def clean(self):
-        """
-        هماهنگ سازی سبد خرید با دیتابیس
-        """
-
-        if not self._cart:
-            return
-
-        products = Product.objects.filter(id__in=self._cart.keys(), is_active=True)
-
-        valid_products = {str(product.id): product for product in products}
-
         changed = False
-
-        for product_id in list(self._cart.keys()):
-            # محصول حذف شده یا غیرفعال
-
-            if product_id not in valid_products:
-                del self._cart[product_id]
-
+        for key, product, variant, qty in self._resolved():
+            if product is None:
+                self._cart.pop(key, None)
                 changed = True
-
-                continue
-
-            product = valid_products[product_id]
-
-            quantity = self._cart[product_id]["quantity"]
-
-            # موجودی صفر
-
-            if product.inventory <= 0:
-                del self._cart[product_id]
-
-                changed = True
-
-                continue
-
-            # بیشتر از موجودی
-
-            if quantity > product.inventory:
-                self._cart[product_id]["quantity"] = product.inventory
-
-                changed = True
-
-            # تعداد غیر معتبر
-
-            if quantity <= 0:
-                del self._cart[product_id]
-
-                changed = True
-
+            else:
+                stock = variant.inventory if variant else product.inventory
+                if qty > stock:
+                    self._cart[key]["quantity"] = stock
+                    changed = True
         if changed:
             self._save()
 
-    # ==============================
-    # Validate Before Order
-    # ==============================
-
     def validate(self):
         errors = []
-
-        products = Product.objects.filter(id__in=self._cart.keys())
-
-        products_dict = {str(product.id): product for product in products}
-
-        for product_id, item in self._cart.items():
-            if product_id not in products_dict:
-                errors.append("یکی از محصولات حذف شده است.")
-
-                continue
-
-            product = products_dict[product_id]
-
-            if not product.is_active:
-                errors.append(f"{product.name} فعال نیست.")
-
-            elif product.inventory < item["quantity"]:
-                errors.append(f"موجودی {product.name} کافی نیست.")
-
-        return {"valid": len(errors) == 0, "errors": errors}
-
-    # ==============================
-    # Price
-    # ==============================
+        for _key, product, variant, qty in self._resolved():
+            if product is None or qty > (variant.inventory if variant else product.inventory):
+                errors.append("محصول نامعتبر است یا موجودی کافی نیست.")
+        return {"valid": not errors, "errors": errors}
 
     def get_subtotal_price(self):
-        return sum(item["total_price"] for item in self)
+        return sum((item["total_price"] for item in self), Decimal("0"))
 
     def get_post_price(self):
-        total_weight = sum(item["product"].weight * item["quantity"] for item in self)
-
-        if total_weight <= 1000:
-            return POST_PRICE_LOW
-
-        return POST_PRICE_HIGH
+        weight = sum(item["product"].weight * item["quantity"] for item in self)
+        return POST_PRICE_LOW if weight <= 1000 else POST_PRICE_HIGH
 
     def get_total_price(self):
         return self.get_subtotal_price() + self.get_post_price()
 
+    def get_total_discount(self):
+        return sum(
+            ((item["variant"] or item["product"]).price - item["price"]) * item["quantity"] for item in self
+        )
+
     @property
     def is_empty(self):
-        """
-        بررسی خالی بودن سبد خرید
-        """
         return len(self) == 0
-
-    def get_total_discount(self):
-        """
-        مجموع تخفیف محصولات داخل سبد
-        """
-
-        total_discount = Decimal("0")
-
-        for item in self:
-            discount = item["product"].price - item["product"].final_price
-
-            total_discount += discount * item["quantity"]
-
-        return total_discount
-
-    # ==============================
-    # Summary
-    # ==============================
 
     def summary(self):
         return {
@@ -258,34 +161,25 @@ class Cart:
             "is_empty": self.is_empty,
         }
 
-    # ==============================
-    # Python Methods
-    # ==============================
-
     def __len__(self):
-        return sum(item["quantity"] for item in self._cart.values())
-
-    def __iter__(self):
-        product_ids = self._cart.keys()
-
-        products = (
-            Product.objects.filter(id__in=product_ids, is_active=True)
-            .select_related("category")
-            .prefetch_related(
-                "images",
-                "features",
-            )
+        return sum(
+            item.get("quantity", 0)
+            for item in self._cart.values()
+            if isinstance(item, dict)
+            and isinstance(item.get("quantity"), int)
+            and not isinstance(item["quantity"], bool)
+            and item["quantity"] > 0
         )
 
-        cart_copy = self._cart.copy()
-
-        for product in products:
-            item = cart_copy[str(product.id)].copy()  # مهم: کپی داخلی
-
-            item["product"] = product
-
-            item["price"] = product.final_price
-
-            item["total_price"] = item["price"] * item["quantity"]
-
-            yield item
+    def __iter__(self):
+        for _key, product, variant, quantity in self._resolved():
+            if product is None:
+                continue
+            price = (variant or product).final_price
+            yield {
+                "product": product,
+                "variant": variant,
+                "quantity": quantity,
+                "price": price,
+                "total_price": price * quantity,
+            }
