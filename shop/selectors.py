@@ -17,6 +17,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 
 from .models import Category, Product, ProductVariant, Review
+from .search import normalize_search, search_products
 
 
 def catalog_products(
@@ -43,10 +44,9 @@ def catalog_products(
             ),
         )
     )
+    search = normalize_search(search)
     if search:
-        qs = qs.filter(
-            Q(name__icontains=search) | Q(description__icontains=search) | Q(sku__icontains=search)
-        )
+        qs = search_products(qs, search)
     if category:
         qs = qs.filter(category__slug=category)
     if stock == "available":
@@ -57,6 +57,12 @@ def catalog_products(
         qs = qs.filter(price__gte=min_price)
     if max_price is not None:
         qs = qs.filter(price__lte=max_price)
+    if ordering == "relevance":
+        return (
+            qs.order_by("-search_rank", "pk")
+            if search and "search_rank" in qs.query.annotations
+            else qs.order_by("-created", "pk")
+        )
     if ordering not in {"price", "-price", "created", "-created", "name", "-name"}:
         ordering = "-created"
     return qs.order_by(ordering, "pk")

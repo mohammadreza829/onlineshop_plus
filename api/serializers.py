@@ -112,7 +112,7 @@ class CatalogFilterSerializer(serializers.Serializer):
     category = serializers.SlugField(required=False, max_length=250)
     stock = serializers.ChoiceField(choices=["available", "out"], required=False)
     ordering = serializers.ChoiceField(
-        choices=["price", "-price", "created", "-created", "name", "-name"], default="-created"
+        choices=["price", "-price", "created", "-created", "name", "-name", "relevance"], default="-created"
     )
     min_price = serializers.DecimalField(max_digits=12, decimal_places=0, min_value=0, required=False)
     max_price = serializers.DecimalField(max_digits=12, decimal_places=0, min_value=0, required=False)

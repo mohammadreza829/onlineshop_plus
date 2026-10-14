@@ -1,5 +1,7 @@
 from decimal import ROUND_HALF_UP, Decimal
 
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -63,6 +65,7 @@ class Product(models.Model):
     slug = models.SlugField(max_length=250, unique=True, db_index=True)
 
     description = models.TextField(blank=True, verbose_name="توضیحات")
+    search_document = SearchVectorField(null=True, editable=False)
 
     inventory = models.PositiveIntegerField(default=0, verbose_name="موجودی")
 
@@ -83,6 +86,7 @@ class Product(models.Model):
         ordering = ["-created"]
 
         indexes = [
+            GinIndex(fields=["search_document"], name="product_search_gin"),
             models.Index(fields=["name"]),
             models.Index(fields=["slug"]),
             models.Index(fields=["category"]),
