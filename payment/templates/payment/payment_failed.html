@@ -8,11 +8,14 @@
     {% if order %}
         <p>شماره سفارش: <strong>{{ order.order_number }}</strong></p>
     {% endif %}
-    <p>علت خطا: <strong>{{ error }}</strong></p>
+    <p>{{ error }}</p>
 
     <div style="margin-top: 20px;">
-        {% if order %}
-            <a href="{% url 'payment:process' order.id %}" style="padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;">تلاش مجدد برای پرداخت</a>
+        {% if order and order.is_payable %}
+            <form method="post" action="{% url 'payment:process' order.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 4px; margin-left: 10px; cursor: pointer;">تلاش مجدد برای پرداخت</button>
+            </form>
         {% endif %}
         <a href="{% url 'shop:product_list' %}" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">بازگشت به فروشگاه</a>
     </div>

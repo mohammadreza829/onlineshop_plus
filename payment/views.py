@@ -1,82 +1,67 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.db import transaction
+from django.views.decorators.http import require_POST
 
-from orders.models import Order
-from orders.services import decrease_stock
 from cart.cart import Cart
+from orders.models import Order
+
 from .models import Payment
-from .services import request_payment, verify_payment
+from .services import PaymentError, process_callback, start_payment
 
 
-@login_required
-def payment_process(request, order_id):
-    """
-    شروع فرآیند پرداخت برای یک سفارش
-    """
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-
-    if order.is_paid:
-        return HttpResponse("این سفارش قبلاً پرداخت شده است.")
-
-    # ایجاد رکورد جدید برای پرداخت
-    payment = Payment.objects.create(
-        order=order,
-        user=request.user,
-        amount=order.total_price,
-    )
-
+def redirect_to_gateway(request, order):
+    """Shared by checkout and the "pay again" button. Returns an HttpResponse."""
     callback_url = request.build_absolute_uri(reverse("payment:verify"))
-    success, payment_url = request_payment(payment, callback_url)
-
-    if success:
-        return redirect(payment_url)
-    
-    return HttpResponse(f"خطا در اتصال به درگاه: {payment_url}")
+    try:
+        payment_url = start_payment(order, request.user, callback_url)
+    except PaymentError as exc:
+        messages.error(request, str(exc))
+        return redirect("orders:order_detail", order_id=order.id)
+    return redirect(payment_url)
 
 
 @login_required
+@require_POST
+def payment_process(request, order_id):
+    """Retry payment for an existing (still reserved) order."""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return redirect_to_gateway(request, order)
+
+
 def payment_verify(request):
     """
-    تایید تراکنش پس از بازگشت از درگاه
+    Gateway callback. Deliberately NOT login_required: if the session was lost on
+    the way back we must still verify (the money may have been taken). The
+    authority is an unguessable gateway token; order details are only shown to
+    the owner.
     """
-    authority = request.GET.get("Authority")
-    status = request.GET.get("Status")
+    authority = request.GET.get("Authority", "").strip()
+    if not authority:
+        return render(
+            request, "payment/payment_failed.html", {"error": "اطلاعات بازگشت از درگاه ناقص است."}, status=400
+        )
 
-    if status != "OK" or not authority:
-        return render(request, "payment/payment_failed.html", {"error": "پرداخت توسط کاربر لغو شد یا ناموفق بود."})
+    try:
+        outcome = process_callback(authority)
+    except Payment.DoesNotExist:
+        return render(request, "payment/payment_failed.html", {"error": "تراکنش یافت نشد."}, status=404)
 
-    payment = get_object_or_404(Payment, authority=authority, user=request.user)
-    order = payment.order
+    is_owner = request.user.is_authenticated and outcome.payment.user_id == request.user.id
+    context = {"order": outcome.order if is_owner else None, "payment": outcome.payment}
 
-    if payment.status == Payment.STATUS_SUCCESS or order.is_paid:
-        return render(request, "payment/payment_success.html", {"order": order, "ref_id": payment.ref_id})
-
-    success, ref_id = verify_payment(payment)
-
-    if success:
-        with transaction.atomic():
-            # ۱. بروزرسانی وضعیت پرداخت
-            payment.status = Payment.STATUS_SUCCESS
-            payment.ref_id = ref_id
-            payment.save(update_fields=["status", "ref_id"])
-
-            # ۲. بروزرسانی وضعیت سفارش
-            order.is_paid = True
-            order.status = Order.STATUS_PAID
-            order.ref_id = ref_id
-            order.save(update_fields=["is_paid", "status", "ref_id"])
-
-            # ۳. کسر موجودی انبار
-            decrease_stock(order)
-
-            # ۴. پاکسازی سبد خرید
+    if outcome.succeeded:
+        if is_owner:
             Cart(request).clear()
+        context["ref_id"] = outcome.payment.ref_id
+        context["needs_review"] = outcome.order.status == Order.STATUS_NEEDS_REVIEW
+        return render(request, "payment/payment_success.html", context)
 
-        return render(request, "payment/payment_success.html", {"order": order, "ref_id": ref_id})
-    else:
-        payment.status = Payment.STATUS_FAILED
-        payment.save(update_fields=["status"])
-        return render(request, "payment/payment_failed.html", {"order": order, "error": "تراکنش توسط درگاه تایید نشد."})
+    if outcome.status == Payment.STATUS_UNKNOWN:
+        return render(request, "payment/payment_pending.html", context)
+
+    context["error"] = (
+        "پرداخت انجام نشد یا توسط شما لغو شد. در صورت کسر وجه، مبلغ ظرف ۷۲ ساعت توسط بانک بازگردانده می‌شود."
+    )
+    return render(request, "payment/payment_failed.html", context)

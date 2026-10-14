@@ -6,13 +6,7 @@
 <div style="max-width: 800px; margin: 30px auto; padding: 20px;">
     <h2>تکمیل خرید و انتخاب آدرس تحویل</h2>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: #f8d7da; color: #721c24;">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+
 
     <form method="post">
         {% csrf_token %}
@@ -60,75 +54,3 @@
     </form>
 </div>
 {% endblock %}
-
-{% comment %} {% extends "base.html" %}
-
-
-{% block content %}
-
-
-<h1>
-ثبت سفارش
-</h1>
-
-
-<h3>
-خلاصه سبد خرید
-</h3>
-
-
-{% for item in cart %}
-
-<p>
-
-{{ item.product.name }}
-
-×
-
-{{ item.quantity }}
-
-=
-
-{{ item.total_price }}
-
-</p>
-
-{% endfor %}
-
-
-<hr>
-
-
-<p>
-هزینه ارسال:
-{{ cart.get_post_price }}
-</p>
-
-
-<p>
-مبلغ نهایی:
-{{ cart.get_total_price }}
-</p>
-
-
-
-<form method="post">
-
-{% csrf_token %}
-
-
-{{ form.as_p }}
-
-
-<button type="submit">
-
-ثبت سفارش
-
-</button>
-
-
-</form>
-
-
-
-{% endblock %} {% endcomment %}

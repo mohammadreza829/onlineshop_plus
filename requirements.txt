@@ -6,8 +6,3 @@ psycopg[binary]>=3.2,<4
 Pillow>=11.0
 requests>=2.32,<3
 python-dotenv>=1.0,<2
-
-# Payment gateway & SMS providers
-# NOTE: verify the exact package names against your local `pip freeze`
-zarinpal-py-sdk
-smsir-python

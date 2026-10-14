@@ -2,8 +2,7 @@ from django.urls import path
 
 from . import views
 
-
-app_name = 'shop'
+app_name = "shop"
 
 """
 طراحی URLها
@@ -25,27 +24,8 @@ URL	View	کاربرد
 """
 
 urlpatterns = [
-
-    path('', views.home_view, name='home'),  # صفحه اصلی
-
-    path(
-        'products/',
-        views.product_list,
-        name='product_list'
-    ),
-
-
-    path(
-        'products/<slug:slug>/',
-        views.product_detail,
-        name='product_detail'
-    ),
-
-
-    path(
-        'category/<slug:slug>/',
-        views.category_products,
-        name='category_products'
-    ),
-
+    path("", views.home_view, name="home"),  # صفحه اصلی
+    path("products/", views.product_list, name="product_list"),
+    path("products/<slug:slug>/", views.product_detail, name="product_detail"),
+    path("category/<slug:slug>/", views.category_products, name="category_products"),
 ]

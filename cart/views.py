@@ -1,37 +1,32 @@
-from django.shortcuts import (
-    render,
-    redirect,
-    get_object_or_404
-)
-
+from django.contrib import messages
 from django.http import JsonResponse
-
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from shop.models import Product
 
 from .cart import Cart
-from sms_ir import SmsIr
-from django.conf import settings
-from .common import smsir
+from .services import CartResult
+
+MAX_QUANTITY_PER_REQUEST = 100
+
+
+def parse_quantity(raw, default=1):
+    """Return a positive int quantity, or None for invalid input (instead of a 500)."""
+    try:
+        value = int(raw if raw not in (None, "") else default)
+    except (TypeError, ValueError):
+        return None
+    if value < 1 or value > MAX_QUANTITY_PER_REQUEST:
+        return None
+    return value
+
 
 def is_ajax(request):
-
-    return (
-        request.headers.get(
-            "X-Requested-With"
-        )
-        ==
-        "XMLHttpRequest"
-    )
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
-def cart_response(
-    request,
-    cart,
-    result=None
-):
-
+def cart_response(request, cart, result=None):
     # data = cart.summary()
 
     # if result:
@@ -48,13 +43,9 @@ def cart_response(
 
     #     data["success"] = True
     #
-    data = {
-        "success": True,
-        **cart.summary()
-    }
+    data = {"success": True, **cart.summary()}
 
     if result:
-
         data.update(
             {
                 "success": result.success,
@@ -63,142 +54,85 @@ def cart_response(
         )
 
     if is_ajax(request):
+        return JsonResponse(data)
 
-        return JsonResponse(
-            data
-        )
+    if result and result.message:
+        (messages.success if result.success else messages.error)(request, result.message)
 
-    return redirect(
-        "cart:cart_detail"
-    )
+    return redirect("cart:cart_detail")
 
 
 # ======================================
 # Cart Detail
 # ======================================
 
+
 def cart_detail(request):
-    # api_key = 'XsfH1Zx3b9XVXTfNB0sqi3pasTdTBNLIKQHxU1fx8VdwjZG2'
-    # linenumber = '50003181890144'
-    sms_ir = SmsIr(settings.SMS_IR_API_KEY, settings.SMS_IR_LINE_NUMBER)
-    # sms_ir.send_sms('09171070235', 'سلام', linenumber,)
     cart = Cart(request)
     cart.clean()
-    return render(
-        request,
-        "cart/cart_detail.html",
-        {
-            "cart": cart
-        }
-    )
+    return render(request, "cart/cart_detail.html", {"cart": cart})
 
 
 # ======================================
 # Add
 # ======================================
 
-@require_POST
-def cart_add(
-    request,
-    product_id
-):
 
+@require_POST
+def cart_add(request, product_id):
     cart = Cart(request)
 
-    product = get_object_or_404(
-        Product,
-        id=product_id
-    )
-    
-    quantity = int(
-        request.POST.get(
-            "quantity",
-            1
-        )
-    )
-    
-    result = cart.add(
-        product,
-        quantity
-    )
-    print(10)
-    # smsir.send_sms_ir(f'مشتری گرامی محصول {product} به سبد شما اضافه شد','09173838328')
-    print(11)
-    return cart_response(
-        request,
-        cart,
-        result
-    )
+    product = get_object_or_404(Product, id=product_id)
+
+    quantity = parse_quantity(request.POST.get("quantity"))
+    if quantity is None:
+        result = CartResult(False, "تعداد نامعتبر است.")
+    else:
+        result = cart.add(product, quantity)
+    return cart_response(request, cart, result)
 
 
 # ======================================
 # Decrease
 # ======================================
 
-@require_POST
-def cart_decrease(
-    request,
-    product_id
-):
 
+@require_POST
+def cart_decrease(request, product_id):
     cart = Cart(request)
 
-    product = get_object_or_404(
-        Product,
-        id=product_id
-    )
+    product = get_object_or_404(Product, id=product_id)
 
-    result = cart.decrease(
-        product
-    )
+    result = cart.decrease(product)
 
-    return cart_response(
-        request,
-        cart,
-        result
-    )
+    return cart_response(request, cart, result)
 
 
 # ======================================
 # Remove
 # ======================================
 
-@require_POST
-def cart_remove(
-    request,
-    product_id
-):
 
+@require_POST
+def cart_remove(request, product_id):
     cart = Cart(request)
 
-    product = get_object_or_404(
-        Product,
-        id=product_id
-    )
+    product = get_object_or_404(Product, id=product_id)
 
-    result = cart.remove(
-        product
-    )
+    result = cart.remove(product)
 
-    return cart_response(
-        request,
-        cart,
-        result
-    )
+    return cart_response(request, cart, result)
 
 
 # ======================================
 # Clear
 # ======================================
 
+
 @require_POST
 def cart_clear(request):
-
     cart = Cart(request)
 
     cart.clear()
     #  messages.success(request,    "سبد خرید خالی شد.")
-    return cart_response(
-        request,
-        cart
-    )
+    return cart_response(request, cart)

@@ -7,24 +7,18 @@
     <h2>پروفایل کاربری</h2>
     <p>شماره همراه: <strong>{{ user.phone }}</strong></p>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div style="padding: 10px; margin-bottom: 10px; border-radius: 4px; background-color: #e2e3e5;">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-
     <!-- منوی دسترسی سریع به بخش‌های مختلف -->
     <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-        <a href="{% url 'addresses:address_list' %}" 
+        <a href="{% url 'addresses:address_list' %}"
            style="padding: 8px 16px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
             📍 مدیریت آدرس‌ها
         </a>
-        <a href="{% url 'account:logout' %}" 
-           style="padding: 8px 16px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px;">
-            🚪 خروج از حساب
-        </a>
+        <form method="post" action="{% url 'account:logout' %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" style="padding: 8px 16px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                🚪 خروج از حساب
+            </button>
+        </form>
     </div>
 
     <!-- ویرایش اطلاعات شخصی -->
@@ -41,12 +35,12 @@
 
     <!-- بخش فیلتر بر اساس وضعیت سفارشات -->
     <div style="margin: 15px 0; display: flex; gap: 8px; flex-wrap: wrap;">
-        <a href="{% url 'account:profile' %}" 
+        <a href="{% url 'account:profile' %}"
            style="padding: 6px 12px; border-radius: 4px; text-decoration: none; border: 1px solid #ccc; {% if not selected_status %}background-color: #007bff; color: white;{% endif %}">
             همه سفارش‌ها
         </a>
         {% for code, label in status_choices %}
-            <a href="{% url 'account:profile' %}?status={{ code }}" 
+            <a href="{% url 'account:profile' %}?status={{ code }}"
                style="padding: 6px 12px; border-radius: 4px; text-decoration: none; border: 1px solid #ccc; {% if selected_status == code %}background-color: #007bff; color: white;{% endif %}">
                 {{ label }}
             </a>
@@ -81,14 +75,16 @@
                             {% if order.is_paid %}
                                 <span style="color: green; font-weight: bold;">پرداخت شده</span>
                             {% else %}
-                                <span style="color: red;">در انتظار پرداخت</span>
+                                <span style="color: red;">پرداخت نشده</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if not order.is_paid %}
-                                <a href="{% url 'payment:process' order.id %}" style="color: green; font-weight: bold;">پرداخت فوری</a>
+                            {% if order.is_paid %}
+                                <span style="color: #666;">کد رهگیری: {{ order.ref_id }}</span>
+                            {% elif order.is_payable %}
+                                <a href="{% url 'orders:order_detail' order.id %}" style="color: green; font-weight: bold;">پرداخت</a>
                             {% else %}
-                                <span style="color: #666;">تکمیل‌شده (کد رهگیری: {{ order.ref_id }})</span>
+                                <a href="{% url 'orders:order_detail' order.id %}">جزئیات</a>
                             {% endif %}
                         </td>
                     </tr>
