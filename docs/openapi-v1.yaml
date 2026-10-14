@@ -1,0 +1,2497 @@
+openapi: 3.0.3
+info:
+  title: Online Shop API
+  version: 1.0.0
+  description: Versioned catalog, OTP/JWT, addresses, session cart, orders and payment
+    initiation. All prices are Toman.
+paths:
+  /api/schema/:
+    get:
+      operationId: api_schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - ht
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/addresses/:
+    get:
+      operationId: api_v1_addresses_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      tags:
+      - Addresses
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAddressList'
+          description: ''
+    post:
+      operationId: api_v1_addresses_create
+      tags:
+      - Addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Address'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Address'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+  /api/v1/addresses/{id}/:
+    get:
+      operationId: api_v1_addresses_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Addresses
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    patch:
+      operationId: api_v1_addresses_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAddress'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAddress'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAddress'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    delete:
+      operationId: api_v1_addresses_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Addresses
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/logout/:
+    post:
+      operationId: api_v1_auth_logout_create
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefreshInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RefreshInput'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/otp/request/:
+    post:
+      operationId: api_v1_auth_otp_request_create
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Phone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Phone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Phone'
+        required: true
+      security:
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/auth/otp/verify/:
+    post:
+      operationId: api_v1_auth_otp_verify_create
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OTPVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OTPVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OTPVerify'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: api_v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/cart/:
+    get:
+      operationId: api_v1_cart_retrieve
+      description: مشاهده محتویات سبد خرید جاری
+      tags:
+      - Cart
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+    post:
+      operationId: api_v1_cart_create
+      description: افزودن محصول به سبد خرید
+      tags:
+      - Cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemAdd'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CartItemAdd'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CartItemAdd'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+    delete:
+      operationId: api_v1_cart_destroy
+      description: حذف یک محصول مشخص یا پاک‌سازی کل سبد خرید
+      parameters:
+      - in: query
+        name: variant_id
+        schema:
+          type: integer
+          minimum: 1
+      tags:
+      - Cart
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/cart/items/{product_id}/:
+    patch:
+      operationId: api_v1_cart_items_partial_update
+      description: |-
+        مدیریت سبد خرید (دریافت لیست، افزودن محصول، حذف محصول).
+        سبد خرید در session نگه‌داری می‌شود، پس برای مهمان هم در دسترس است.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCartQuantity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCartQuantity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCartQuantity'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartQuantityResponse'
+          description: ''
+    delete:
+      operationId: api_v1_cart_items_destroy
+      description: حذف یک محصول مشخص یا پاک‌سازی کل سبد خرید
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: variant_id
+        schema:
+          type: integer
+          minimum: 1
+      tags:
+      - Cart
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/categories/:
+    get:
+      operationId: api_v1_categories_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      - in: query
+        name: parent
+        schema:
+          type: integer
+          minimum: 1
+      - in: query
+        name: roots_only
+        schema:
+          type: boolean
+          default: false
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+      tags:
+      - Catalog
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCategoryList'
+          description: ''
+  /api/v1/categories/{slug}/:
+    get:
+      operationId: api_v1_categories_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Catalog
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/client-options/:
+    get:
+      operationId: api_v1_client_options_retrieve
+      tags:
+      - Client bootstrap
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientOptions'
+          description: ''
+  /api/v1/csrf/:
+    get:
+      operationId: api_v1_csrf_retrieve
+      tags:
+      - Client bootstrap
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CSRF'
+          description: ''
+  /api/v1/favorites/:
+    get:
+      operationId: api_v1_favorites_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+  /api/v1/me/:
+    get:
+      operationId: api_v1_me_retrieve
+      tags:
+      - Account
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    patch:
+      operationId: api_v1_me_partial_update
+      tags:
+      - Account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: api_v1_notifications_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    post:
+      operationId: api_v1_notifications_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Notifications
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/orders/:
+    get:
+      operationId: api_v1_orders_list
+      description: |-
+        مشاهده لیست سفارش‌های کاربر جاری با امکان فیلتر بر اساس status
+        مثال: /orders/api/v1/orders/?status=paid
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          enum:
+          - pending
+          - paid
+          - preparing
+          - sent
+          - delivered
+          - canceled
+          - expired
+          - needs_review
+          type: string
+          minLength: 1
+        description: |-
+          * `pending` - در انتظار پرداخت
+          * `paid` - پرداخت شده
+          * `preparing` - در حال آماده‌سازی
+          * `sent` - ارسال شده
+          * `delivered` - تحویل داده شده
+          * `canceled` - لغو شده
+          * `expired` - منقضی شده
+          * `needs_review` - نیازمند بررسی
+      tags:
+      - Orders
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderDetailList'
+          description: ''
+  /api/v1/orders/{id}/:
+    get:
+      operationId: api_v1_orders_retrieve
+      description: مشاهده جزئیات یک سفارش مشخص
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Orders
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+          description: ''
+  /api/v1/orders/{id}/cancel/:
+    post:
+      operationId: api_v1_orders_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Orders
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+          description: ''
+  /api/v1/orders/{id}/payment/:
+    post:
+      operationId: api_v1_orders_payment_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Payments
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLink'
+          description: ''
+  /api/v1/orders/{id}/tracking/:
+    get:
+      operationId: api_v1_orders_tracking_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEventList'
+          description: ''
+  /api/v1/orders/create/:
+    post:
+      operationId: api_v1_orders_create_create
+      description: ثبت سفارش جدید بر اساس سبد خرید فعلی و آدرس انتخاب‌شده
+      tags:
+      - Orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+          description: ''
+  /api/v1/products/:
+    get:
+      operationId: api_v1_products_list
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          maxLength: 250
+          pattern: ^[-a-zA-Z0-9_]+$
+          minLength: 1
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - in: query
+        name: max_price
+        schema:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+      - in: query
+        name: min_price
+        schema:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      - in: query
+        name: ordering
+        schema:
+          enum:
+          - price
+          - -price
+          - created
+          - -created
+          - name
+          - -name
+          - relevance
+          type: string
+          default: -created
+          minLength: 1
+        description: |-
+          * `price` - price
+          * `-price` - -price
+          * `created` - created
+          * `-created` - -created
+          * `name` - name
+          * `-name` - -name
+          * `relevance` - relevance
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+      - in: query
+        name: stock
+        schema:
+          enum:
+          - available
+          - out
+          type: string
+          minLength: 1
+        description: |-
+          * `available` - available
+          * `out` - out
+      tags:
+      - Catalog
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+  /api/v1/products/{id}/favorite/:
+    put:
+      operationId: api_v1_products_favorite_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Favorites
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+    delete:
+      operationId: api_v1_products_favorite_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Favorites
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/products/{slug}/:
+    get:
+      operationId: api_v1_products_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Catalog
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+          description: ''
+  /api/v1/products/{slug}/recommendations/:
+    get:
+      operationId: api_v1_products_recommendations_list
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 20
+          minimum: 1
+          default: 8
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Recommendations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+  /api/v1/products/{slug}/reviews/:
+    get:
+      operationId: api_v1_products_reviews_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: تعداد نتایج برای نمایش در هر صفحه.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: ایندکس اولیه‌ای که از آن نتایج بازگردانده می‌شود.
+        schema:
+          type: integer
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewList'
+          description: ''
+  /api/v1/products/{slug}/reviews/mine/:
+    get:
+      operationId: api_v1_products_reviews_mine_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Reviews
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyReview'
+          description: ''
+    put:
+      operationId: api_v1_products_reviews_mine_update
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyReview'
+          description: ''
+    delete:
+      operationId: api_v1_products_reviews_mine_destroy
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Reviews
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/staff/orders/{id}/:
+    post:
+      operationId: api_v1_staff_orders_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Staff
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffOrderInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StaffOrderInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StaffOrderInput'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+          description: ''
+  /api/v1/staff/sales/:
+    get:
+      operationId: api_v1_staff_sales_retrieve
+      parameters:
+      - in: query
+        name: from_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: to_date
+        schema:
+          type: string
+          format: date
+      tags:
+      - Staff
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+          description: ''
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: عنوان آدرس (مثلاً خانه، محل کار)
+          maxLength: 100
+        receiver_name:
+          type: string
+          title: نام تحویل‌گیرنده
+          maxLength: 100
+        receiver_phone:
+          type: string
+          title: شماره تماس تحویل‌گیرنده
+          maxLength: 20
+        province:
+          allOf:
+          - $ref: '#/components/schemas/ProvinceEnum'
+          title: استان
+        city:
+          type: string
+          title: شهر
+          maxLength: 100
+        full_address:
+          type: string
+          title: آدرس دقیق پستی
+        postal_code:
+          type: string
+          title: کد پستی
+          maxLength: 20
+        is_default:
+          type: boolean
+          title: آدرس پیش‌فرض
+      required:
+      - city
+      - full_address
+      - id
+      - postal_code
+      - receiver_name
+      - receiver_phone
+      - title
+    CSRF:
+      type: object
+      properties:
+        csrf_token:
+          type: string
+      required:
+      - csrf_token
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        post_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        item_count:
+          type: integer
+        is_empty:
+          type: boolean
+      required:
+      - discount
+      - is_empty
+      - item_count
+      - items
+      - post_price
+      - subtotal
+      - total_price
+    CartItem:
+      type: object
+      properties:
+        variant_id:
+          type: integer
+          nullable: true
+        product_id:
+          type: integer
+        name:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+        quantity:
+          type: integer
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+      required:
+      - name
+      - price
+      - product_id
+      - quantity
+      - total_price
+      - variant_id
+    CartItemAdd:
+      type: object
+      description: سریالایزر افزودن محصول به سبد خرید
+      properties:
+        variant_id:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 1
+      required:
+      - product_id
+    CartQuantityResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        post_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,0})?$
+        item_count:
+          type: integer
+        is_empty:
+          type: boolean
+        quantity_clamped:
+          type: boolean
+      required:
+      - discount
+      - is_empty
+      - item_count
+      - items
+      - post_price
+      - quantity_clamped
+      - subtotal
+      - total_price
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          title: دسته بندی محصولات
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        parent:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: دسته والد
+      required:
+      - id
+      - name
+      - parent
+      - slug
+    CheckoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        payment_url:
+          type: string
+          format: uri
+        payment_api_url:
+          type: string
+          format: uri
+        reserved_until:
+          type: string
+          format: date-time
+        order:
+          $ref: '#/components/schemas/OrderDetail'
+      required:
+      - message
+      - order
+      - payment_api_url
+      - payment_url
+      - reserved_until
+    ClientOptions:
+      type: object
+      properties:
+        currency:
+          type: string
+        time_zone:
+          type: string
+        cart_quantity_max:
+          type: integer
+        cart_lines_max:
+          type: integer
+        pagination_default:
+          type: integer
+        pagination_max:
+          type: integer
+        provinces:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProvinceOption'
+      required:
+      - cart_lines_max
+      - cart_quantity_max
+      - currency
+      - pagination_default
+      - pagination_max
+      - provinces
+      - time_zone
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 25
+        last_name:
+          type: string
+          maxLength: 25
+      required:
+      - first_name
+      - id
+      - last_name
+      - phone
+    Dashboard:
+      type: object
+      properties:
+        from_date:
+          type: string
+          format: date
+        to_date:
+          type: string
+          format: date
+        time_zone:
+          type: string
+        currency:
+          type: string
+        orders_created:
+          type: integer
+        created_orders_by_status:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusCount'
+        paid_orders_count:
+          type: integer
+        paid_orders_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,0})?$
+        canceled_paid_orders_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,0})?$
+        successful_payment_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,0})?$
+        duplicate_payment_refund_flag_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,0})?$
+        needs_review_orders_all_time:
+          type: integer
+        coupon_over_capacity_all_time:
+          type: integer
+        unknown_payments_all_time:
+          type: integer
+      required:
+      - canceled_paid_orders_value
+      - coupon_over_capacity_all_time
+      - created_orders_by_status
+      - currency
+      - duplicate_payment_refund_flag_amount
+      - from_date
+      - needs_review_orders_all_time
+      - orders_created
+      - paid_orders_count
+      - paid_orders_value
+      - successful_payment_amount
+      - time_zone
+      - to_date
+      - unknown_payments_all_time
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sequence:
+          type: integer
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        previous_status:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          readOnly: true
+        carrier:
+          type: string
+          readOnly: true
+        tracking_code:
+          type: string
+          readOnly: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - carrier
+      - created
+      - id
+      - kind
+      - previous_status
+      - sequence
+      - status
+      - tracking_code
+    Feature:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: مشخصات
+          maxLength: 250
+        value:
+          type: string
+          title: مقدار ویژگی
+          maxLength: 250
+      required:
+      - id
+      - name
+      - value
+    KindEnum:
+      enum:
+      - created
+      - status
+      - tracking
+      - payment
+      type: string
+      description: |-
+        * `created` - ایجاد
+        * `status` - وضعیت
+        * `tracking` - اطلاعات ارسال
+        * `payment` - تایید پرداخت
+    Message:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    MyReview:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        rating:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MyReviewStatusEnum'
+          readOnly: true
+      required:
+      - created
+      - id
+      - rating
+      - status
+      - text
+      - updated
+    MyReviewStatusEnum:
+      enum:
+      - pending
+      - approved
+      - rejected
+      type: string
+      description: |-
+        * `pending` - در انتظار بررسی
+        * `approved` - تایید
+        * `rejected` - رد
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        order_id:
+          type: integer
+          readOnly: true
+        order_number:
+          type: string
+          readOnly: true
+        event:
+          allOf:
+          - $ref: '#/components/schemas/Event'
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created
+      - event
+      - id
+      - order_id
+      - order_number
+      - read_at
+    OTPVerify:
+      type: object
+      properties:
+        phone:
+          type: string
+          maxLength: 32
+        code:
+          type: string
+          maxLength: 6
+          minLength: 6
+      required:
+      - code
+      - phone
+    OrderCreate:
+      type: object
+      description: ورودی ثبت سفارش جدید توسط کاربر
+      properties:
+        coupon_code:
+          type: string
+          pattern: ^[a-zA-Z0-9_-]{1,40}$
+        address_id:
+          type: integer
+      required:
+      - address_id
+    OrderDetail:
+      type: object
+      description: نمایش کامل جزئیات سفارش ثبت‌شده
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        order_number:
+          type: string
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+          title: نام
+        last_name:
+          type: string
+          readOnly: true
+          title: نام خانوادگی
+        phone:
+          type: string
+          readOnly: true
+          title: شماره تماس
+        address:
+          type: string
+          readOnly: true
+          title: آدرس
+        postal_code:
+          type: string
+          readOnly: true
+          title: کد پستی
+        post_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+          title: هزینه ارسال
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+          title: مبلغ کل
+        coupon_code:
+          type: string
+          readOnly: true
+        coupon_discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+        carrier:
+          type: string
+          readOnly: true
+        tracking_code:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        is_paid:
+          type: boolean
+          readOnly: true
+        ref_id:
+          type: string
+          readOnly: true
+        reserved_until:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: مهلت پرداخت
+        is_payable:
+          type: boolean
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - address
+      - carrier
+      - coupon_code
+      - coupon_discount
+      - created
+      - first_name
+      - id
+      - is_paid
+      - is_payable
+      - items
+      - last_name
+      - order_number
+      - phone
+      - post_price
+      - postal_code
+      - ref_id
+      - reserved_until
+      - status
+      - status_display
+      - total_price
+      - tracking_code
+    OrderItem:
+      type: object
+      description: نمایش آیتم‌های درون یک سفارش (نام و قیمت از snapshot خود آیتم خوانده
+        می‌شود)
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+          readOnly: true
+          nullable: true
+        product_name:
+          type: string
+          readOnly: true
+          title: نام محصول
+        product_sku:
+          type: string
+          readOnly: true
+          title: کد محصول
+        variant:
+          type: integer
+          readOnly: true
+          nullable: true
+        variant_sku:
+          type: string
+          readOnly: true
+        variant_color:
+          type: string
+          readOnly: true
+        variant_size:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+          title: قیمت واحد
+        quantity:
+          type: integer
+          readOnly: true
+        total_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+          title: قیمت کل
+      required:
+      - id
+      - price
+      - product
+      - product_name
+      - product_sku
+      - quantity
+      - total_price
+      - variant
+      - variant_color
+      - variant_size
+      - variant_sku
+    OrderStatusEnum:
+      enum:
+      - pending
+      - paid
+      - preparing
+      - sent
+      - delivered
+      - canceled
+      - expired
+      - needs_review
+      type: string
+      description: |-
+        * `pending` - در انتظار پرداخت
+        * `paid` - پرداخت شده
+        * `preparing` - در حال آماده‌سازی
+        * `sent` - ارسال شده
+        * `delivered` - تحویل داده شده
+        * `canceled` - لغو شده
+        * `expired` - منقضی شده
+        * `needs_review` - نیازمند بررسی
+    PaginatedAddressList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+    PaginatedCategoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    PaginatedEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedOrderDetailList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderDetail'
+    PaginatedProductList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    PaginatedReviewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+    PatchedAddress:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: عنوان آدرس (مثلاً خانه، محل کار)
+          maxLength: 100
+        receiver_name:
+          type: string
+          title: نام تحویل‌گیرنده
+          maxLength: 100
+        receiver_phone:
+          type: string
+          title: شماره تماس تحویل‌گیرنده
+          maxLength: 20
+        province:
+          allOf:
+          - $ref: '#/components/schemas/ProvinceEnum'
+          title: استان
+        city:
+          type: string
+          title: شهر
+          maxLength: 100
+        full_address:
+          type: string
+          title: آدرس دقیق پستی
+        postal_code:
+          type: string
+          title: کد پستی
+          maxLength: 20
+        is_default:
+          type: boolean
+          title: آدرس پیش‌فرض
+    PatchedCartQuantity:
+      type: object
+      properties:
+        variant_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          maximum: 100
+          minimum: 0
+    PatchedCustomer:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 25
+        last_name:
+          type: string
+          maxLength: 25
+    PaymentLink:
+      type: object
+      properties:
+        payment_url:
+          type: string
+          format: uri
+      required:
+      - payment_url
+    Phone:
+      type: object
+      properties:
+        phone:
+          type: string
+          maxLength: 32
+      required:
+      - phone
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sku:
+          type: string
+          readOnly: true
+          title: کد محصول
+        name:
+          type: string
+          readOnly: true
+          title: نام محصول
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+          title: قیمت
+        'off':
+          type: integer
+          readOnly: true
+          title: درصد تخفیف
+        final_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+        inventory:
+          type: integer
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/Category'
+          readOnly: true
+        rating_average:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        rating_count:
+          type: integer
+          readOnly: true
+      required:
+      - category
+      - final_price
+      - id
+      - inventory
+      - name
+      - 'off'
+      - price
+      - rating_average
+      - rating_count
+      - sku
+      - slug
+    ProductDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sku:
+          type: string
+          readOnly: true
+          title: کد محصول
+        name:
+          type: string
+          readOnly: true
+          title: نام محصول
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+          title: قیمت
+        'off':
+          type: integer
+          readOnly: true
+          title: درصد تخفیف
+        final_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+        inventory:
+          type: integer
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/Category'
+          readOnly: true
+        rating_average:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        rating_count:
+          type: integer
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+          title: توضیحات
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+          readOnly: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+          readOnly: true
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Variant'
+          readOnly: true
+      required:
+      - category
+      - description
+      - features
+      - final_price
+      - id
+      - images
+      - inventory
+      - name
+      - 'off'
+      - price
+      - rating_average
+      - rating_count
+      - sku
+      - slug
+      - variants
+    ProductImage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        image:
+          type: string
+          format: uri
+          title: تصویر
+        description:
+          type: string
+          title: توضیحات تصویر
+          maxLength: 250
+        is_primary:
+          type: boolean
+          title: تصویر اصلی
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          readOnly: true
+      required:
+      - id
+      - image
+      - order
+    ProvinceEnum:
+      enum:
+      - fars
+      - tehran
+      - isfahan
+      - khorasan_razavi
+      - east_azerbaijan
+      type: string
+      description: |-
+        * `fars` - فارس
+        * `tehran` - تهران
+        * `isfahan` - اصفهان
+        * `khorasan_razavi` - خراسان رضوی
+        * `east_azerbaijan` - آذربایجان شرقی
+    ProvinceOption:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - value
+    RefreshInput:
+      type: object
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        rating:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created
+      - id
+      - rating
+      - text
+      - updated
+    ReviewInput:
+      type: object
+      properties:
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+        text:
+          type: string
+          maxLength: 2000
+          minLength: 1
+      required:
+      - rating
+      - text
+    StaffOrderInput:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StaffOrderStatusEnum'
+        carrier:
+          type: string
+          maxLength: 80
+        tracking_code:
+          type: string
+          maxLength: 100
+    StaffOrderStatusEnum:
+      enum:
+      - preparing
+      - sent
+      - delivered
+      - canceled
+      type: string
+      description: |-
+        * `preparing` - preparing
+        * `sent` - sent
+        * `delivered` - delivered
+        * `canceled` - canceled
+    StatusCount:
+      type: object
+      properties:
+        status:
+          type: string
+        total:
+          type: integer
+      required:
+      - status
+      - total
+    TokenPair:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    Variant:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sku:
+          type: string
+          readOnly: true
+        color:
+          type: string
+          readOnly: true
+        size:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+        final_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,0})?$
+          readOnly: true
+        inventory:
+          type: integer
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+      required:
+      - color
+      - final_price
+      - id
+      - inventory
+      - is_active
+      - price
+      - size
+      - sku
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
