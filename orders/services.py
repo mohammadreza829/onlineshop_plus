@@ -21,9 +21,11 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from account.models import ShopUser
 from shop.models import Product
 
 from .models import Order, OrderItem
+from .policies import may_cancel_order
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +116,8 @@ def create_order_from_cart(cart, address, user):
     Any previous unpaid order of the same user is canceled first, so double
     submits / abandoned checkouts don't hold stock twice.
     """
+    if address.user_id != user.pk:
+        raise OrderCreationError("آدرس متعلق به این کاربر نیست.")
     cart.clean()
     if cart.is_empty:
         raise OrderCreationError("سبد خرید خالی است.")
@@ -129,8 +133,13 @@ def create_order_from_cart(cart, address, user):
     snapshot = build_shipping_snapshot(address, user)
 
     with transaction.atomic():
+        # One pending checkout per customer, even when two requests arrive together.
+        ShopUser.objects.select_for_update().get(pk=user.pk)
         for old_order in Order.objects.filter(user=user, status=Order.STATUS_PENDING, is_paid=False):
-            cancel_order(old_order, reason="replaced by a new checkout")
+            old_order = _lock(old_order)
+            # A gateway callback may have paid it while we waited for its lock.
+            if old_order.status == Order.STATUS_PENDING and not old_order.is_paid:
+                cancel_order(old_order, reason="replaced by a new checkout")
 
         products = list(Product.objects.select_for_update().filter(id__in=quantities.keys()).order_by("pk"))
         if len(products) != len(quantities):
@@ -291,3 +300,11 @@ def advance_order(order, new_status):
         order.transition_to(new_status)
         order.save(update_fields=["status", "updated"])
     return order
+
+
+@transaction.atomic
+def cancel_order_by_customer(order, user):
+    order = _lock(order)
+    if not may_cancel_order(user, order):
+        raise OrderActionError("این سفارش قابل لغو نیست.")
+    return cancel_order(order, reason="by customer")

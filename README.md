@@ -82,6 +82,12 @@ DJANGO_DB_ENGINE=postgresql python manage.py test   # همهٔ تست‌ها، �
 
 ## API
 
+API اصلی نسخه‌دار در `/api/v1/` است؛ ورود OTP/JWT، کاتالوگ، آدرس‌ها، سبد و سفارش‌ها. [قرارداد API و نکات امنیتی](docs/api-v1.md) را پیش از ساخت کلاینت بخوانید. سبد همچنان session/cookie-bound است و با JWT بین دستگاه‌ها همگام نمی‌شود.
+
+برای JWT اجرای `python manage.py migrate` لازم است؛ پاک‌سازی روزانهٔ tokenهای منقضی با `python manage.py flushexpiredtokens`.
+
+مسیرهای زیر alias قدیمی و سازگار باقی مانده‌اند:
+
 - مستندات Swagger: `/api/docs/`
 - Schema: `/api/schema/`
 - سبد خرید: `/orders/api/v1/cart/`

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from addresses.models import Address
+from addresses.selectors import addresses_for_user
+from cart.services import MAX_QUANTITY_PER_REQUEST
 from shop.models import Product
 
 from .models import Order, OrderItem
@@ -10,7 +11,7 @@ class CartItemAddSerializer(serializers.Serializer):
     """سریالایزر افزودن محصول به سبد خرید"""
 
     product_id = serializers.IntegerField()
-    quantity = serializers.IntegerField(default=1, min_value=1)
+    quantity = serializers.IntegerField(default=1, min_value=1, max_value=MAX_QUANTITY_PER_REQUEST)
 
     def validate_product_id(self, value):
         if not Product.objects.filter(id=value, is_active=True).exists():
@@ -33,6 +34,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
+    is_payable = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Order
         fields = [
@@ -49,6 +52,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "status_display",
             "is_paid",
             "ref_id",
+            "reserved_until",
+            "is_payable",
             "items",
             "created",
         ]
@@ -62,6 +67,6 @@ class OrderCreateSerializer(serializers.Serializer):
 
     def validate_address_id(self, value):
         user = self.context["request"].user
-        if not Address.objects.filter(id=value, user=user).exists():
+        if not addresses_for_user(user).filter(id=value).exists():
             raise serializers.ValidationError("آدرس انتخاب‌شده معتبر نیست یا متعلق به شما نمی‌باشد.")
         return value

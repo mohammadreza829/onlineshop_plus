@@ -6,20 +6,7 @@ from django.views.decorators.http import require_POST
 from shop.models import Product
 
 from .cart import Cart
-from .services import CartResult
-
-MAX_QUANTITY_PER_REQUEST = 100
-
-
-def parse_quantity(raw, default=1):
-    """Return a positive int quantity, or None for invalid input (instead of a 500)."""
-    try:
-        value = int(raw if raw not in (None, "") else default)
-    except (TypeError, ValueError):
-        return None
-    if value < 1 or value > MAX_QUANTITY_PER_REQUEST:
-        return None
-    return value
+from .services import CartResult, parse_quantity
 
 
 def is_ajax(request):

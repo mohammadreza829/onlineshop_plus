@@ -1,6 +1,9 @@
 from django import forms
 
+from account.otp import normalize_phone
+
 from .models import Address
+from .validation import normalize_postal_code
 
 
 class AddressForm(forms.ModelForm):
@@ -30,13 +33,7 @@ class AddressForm(forms.ModelForm):
         }
 
     def clean_receiver_phone(self):
-        phone = self.cleaned_data.get("receiver_phone")
-        if not phone.isdigit() or len(phone) != 11 or not phone.startswith("09"):
-            raise forms.ValidationError("شماره همراه نامعتبر است.")
-        return phone
+        return normalize_phone(self.cleaned_data.get("receiver_phone"))
 
     def clean_postal_code(self):
-        postal_code = self.cleaned_data.get("postal_code")
-        if not postal_code.isdigit() or len(postal_code) != 10:
-            raise forms.ValidationError("کد پستی باید ۱۰ رقم باشد.")
-        return postal_code
+        return normalize_postal_code(self.cleaned_data.get("postal_code"))

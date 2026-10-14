@@ -6,6 +6,7 @@ variables (or a local `.env` file). See `.env.example` for the full list.
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -80,6 +81,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "rest_framework_simplejwt.token_blacklist",
     "shop",
     "cart",
     "orders",
@@ -225,7 +227,7 @@ OTP_MAX_SENDS_PER_PHONE_PER_HOUR = env_int("OTP_MAX_SENDS_PER_PHONE_PER_HOUR", 5
 OTP_MAX_SENDS_PER_IP_PER_HOUR = env_int("OTP_MAX_SENDS_PER_IP_PER_HOUR", 20)
 
 # OTP codes and rate-limit counters live in the cache. LocMem is per-process;
-# use Redis in production (phase 4) so limits are shared between workers.
+# use Redis in production (phase 3) so limits are shared between workers.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -253,18 +255,43 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.BoundedPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "300/min",
+        "auth": "10/min",
+        "checkout": "10/min",
+        "cart": "60/min",
+    },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Online Shop API",
-    "DESCRIPTION": "API documentation for Cart, Orders and Payment integration",
+    "DESCRIPTION": "Versioned catalog, OTP/JWT, addresses, session cart, orders and payment initiation. All prices are Toman.",
     "VERSION": "1.0.0",
 }
+
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "SIGNING_KEY": env("JWT_SIGNING_KEY") or SECRET_KEY,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+if not DEBUG and len(SIMPLE_JWT["SIGNING_KEY"]) < 32:
+    raise ImproperlyConfigured("JWT_SIGNING_KEY must contain at least 32 characters.")
