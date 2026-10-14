@@ -1,11 +1,16 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Category, Product, ProductFeatures, ProductImage
+from .models import Category, Product, ProductFeatures, ProductImage, ProductVariant
 
 # ==========================================
 # Product Image Inline
 # ==========================================
+
+
+class VariantInline(admin.TabularInline):
+    model = ProductVariant
+    extra = 0
 
 
 class ImageInline(admin.TabularInline):
@@ -160,6 +165,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
 
     inlines = [
+        VariantInline,
         ImageInline,
         FeatureInline,
     ]

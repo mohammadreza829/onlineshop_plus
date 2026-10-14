@@ -154,6 +154,11 @@ class OrderItem(models.Model):
 
     product = models.ForeignKey(Product, related_name="order_items", on_delete=models.SET_NULL, null=True)
 
+    variant = models.ForeignKey("shop.ProductVariant", on_delete=models.PROTECT, null=True, blank=True)
+    variant_sku = models.CharField(max_length=50, blank=True)
+    variant_color = models.CharField(max_length=60, blank=True)
+    variant_size = models.CharField(max_length=60, blank=True)
+
     product_name = models.CharField(max_length=250, verbose_name="نام محصول")
 
     price = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="قیمت واحد")

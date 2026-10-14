@@ -19,11 +19,19 @@ class OrderItemInline(admin.TabularInline):
 
     readonly_fields = (
         "product",
+        "variant",
+        "variant_sku",
+        "variant_color",
+        "variant_size",
+        "product_sku",
         "product_name",
         "price",
         "quantity",
         "total_price",
     )
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 # ==========================================
@@ -68,6 +76,8 @@ class OrderAdmin(admin.ModelAdmin):
     # Status / payment fields are read-only: they may only change through the
     # actions below, which go through the state machine and keep stock consistent.
     readonly_fields = (
+        "total_price",
+        "post_price",
         "order_number",
         "status",
         "is_paid",

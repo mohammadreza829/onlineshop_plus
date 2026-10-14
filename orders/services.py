@@ -18,11 +18,11 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F
+from django.db.models import Exists, F, OuterRef
 from django.utils import timezone
 
 from account.models import ShopUser
-from shop.models import Product
+from shop.models import Product, ProductVariant
 
 from .models import Order, OrderItem
 from .policies import may_cancel_order
@@ -62,26 +62,39 @@ def reservation_deadline():
 # ----------------------------------------------------------------------
 
 
+def _stock_rows(lines):
+    # Always touch all products before all variants, in stable primary-key order.
+    return sorted(lines, key=lambda x: (x[3] is not None, x[3] or x[0]))
+
+
 def _reserve(lines):
-    """lines: iterable of (product_id, quantity, product_name). Raises InsufficientStock."""
-    for product_id, quantity, name in sorted(lines, key=lambda line: line[0]):
-        updated = Product.objects.filter(pk=product_id, is_active=True, inventory__gte=quantity).update(
-            inventory=F("inventory") - quantity
-        )
-        if updated != 1:
+    for product_id, quantity, name, variant_id in _stock_rows(lines):
+        if variant_id is None:
+            qs = Product.objects.filter(pk=product_id, is_active=True, inventory__gte=quantity)
+            qs = qs.filter(~Exists(ProductVariant.objects.filter(product_id=OuterRef("pk"))))
+        else:
+            qs = ProductVariant.objects.filter(
+                pk=variant_id,
+                product_id=product_id,
+                product__is_active=True,
+                is_active=True,
+                inventory__gte=quantity,
+            )
+        if qs.update(inventory=F("inventory") - quantity) != 1:
             raise InsufficientStock(name)
 
 
 def _release(lines):
-    for product_id, quantity, _name in sorted(lines, key=lambda line: line[0]):
-        Product.objects.filter(pk=product_id).update(inventory=F("inventory") + quantity)
+    for product_id, quantity, _name, variant_id in _stock_rows(lines):
+        model = ProductVariant if variant_id is not None else Product
+        model.objects.filter(pk=variant_id or product_id).update(inventory=F("inventory") + quantity)
 
 
 def _order_lines(order):
     return [
-        (item.product_id, item.quantity, item.product_name)
-        for item in order.items.all()
-        if item.product_id is not None
+        (i.product_id, i.quantity, i.product_name, i.variant_id)
+        for i in order.items.all()
+        if i.product_id is not None
     ]
 
 
@@ -126,7 +139,10 @@ def create_order_from_cart(cart, address, user):
     if not validation["valid"]:
         raise OrderCreationError("\n".join(validation["errors"]))
 
-    quantities = {item["product"].id: item["quantity"] for item in cart}
+    quantities = {
+        (item["product"].id, item["variant"].id if item.get("variant") else None): item["quantity"]
+        for item in cart
+    }
     if not quantities:
         raise OrderCreationError("سبد خرید خالی است.")
     post_price = cart.get_post_price()
@@ -141,12 +157,30 @@ def create_order_from_cart(cart, address, user):
             if old_order.status == Order.STATUS_PENDING and not old_order.is_paid:
                 cancel_order(old_order, reason="replaced by a new checkout")
 
-        products = list(Product.objects.select_for_update().filter(id__in=quantities.keys()).order_by("pk"))
-        if len(products) != len(quantities):
-            raise OrderCreationError("یکی از محصولات حذف شده است.")
-
-        _reserve([(p.pk, quantities[p.pk], p.name) for p in products])
-
+        products = {
+            p.pk: p
+            for p in Product.objects.select_for_update()
+            .filter(id__in={key[0] for key in quantities})
+            .order_by("pk")
+        }
+        variants = {
+            v.pk: v
+            for v in ProductVariant.objects.select_for_update()
+            .filter(id__in={key[1] for key in quantities if key[1] is not None})
+            .order_by("pk")
+        }
+        lines = []
+        for (product_id, variant_id), quantity in quantities.items():
+            product = products.get(product_id)
+            variant = variants.get(variant_id)
+            if not product or (variant_id is not None and (not variant or variant.product_id != product_id)):
+                raise OrderCreationError("محصول یا تنوع انتخابی معتبر نیست.")
+            if quantity <= 0:
+                raise OrderCreationError("تعداد نامعتبر است.")
+            if variant:
+                variant.product = product
+            lines.append((product_id, quantity, product.name, variant_id))
+        _reserve(lines)
         order = Order.objects.create(
             user=user,
             address_obj=address,
@@ -156,20 +190,26 @@ def create_order_from_cart(cart, address, user):
             reserved_until=reservation_deadline(),
             **snapshot,
         )
-        OrderItem.objects.bulk_create(
-            [
+        items = []
+        for (product_id, variant_id), quantity in quantities.items():
+            product, variant = products[product_id], variants.get(variant_id)
+            price = variant.final_price if variant else product.final_price
+            items.append(
                 OrderItem(
                     order=order,
                     product=product,
+                    variant=variant,
                     product_name=product.name,
                     product_sku=product.sku,
-                    price=product.final_price,
-                    quantity=quantities[product.pk],
-                    total_price=product.final_price * quantities[product.pk],
+                    variant_sku=variant.sku if variant else "",
+                    variant_color=variant.color if variant else "",
+                    variant_size=variant.size if variant else "",
+                    price=price,
+                    quantity=quantity,
+                    total_price=price * quantity,
                 )
-                for product in products
-            ]
-        )
+            )
+        OrderItem.objects.bulk_create(items)
         order.total_price = order.calculate_total()
         order.save(update_fields=["total_price"])
 
