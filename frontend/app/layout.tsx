@@ -1,0 +1,41 @@
+import type { Metadata } from "next";
+import { Providers } from "@/components/providers";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { site } from "@/config/site";
+import { siteURL } from "@/lib/api/server";
+import "./globals.css";
+export const metadata: Metadata = {
+  metadataBase: siteURL(),
+  title: { default: site.name, template: `%s | ${site.name}` },
+  description: site.description,
+  icons: { icon: "/icon.svg" },
+};
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="fa" dir="rtl">
+      <head>
+        {[400, 500, 700].map((weight) => (
+          <link
+            key={weight}
+            rel="preload"
+            href={`/fonts/vazirmatn-arabic-${weight}-normal.woff2`}
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+          />
+        ))}
+      </head>
+      <body>
+        <a href="#main" className="skip">
+          رفتن به محتوای اصلی
+        </a>
+        <Providers>
+          <Header />
+          <main id="main">{children}</main>
+          <Footer />
+        </Providers>
+      </body>
+    </html>
+  );
+}

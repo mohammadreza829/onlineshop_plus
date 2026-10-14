@@ -1,0 +1,152 @@
+{
+  "state": "local tested; not committed, pushed, merged or deployed",
+  "baseline": {
+    "main_commit": "9ec4e3730bf1c06027e7ec013d5b8e6abca1d38d",
+    "tree": "249ac30ff8408560b692efd1cdb3b78a28e8eb64",
+    "branch": "frontend/customer-storefront"
+  },
+  "checks": {
+    "build": "passed",
+    "strict_typecheck": "passed",
+    "eslint": "passed",
+    "ruff_harness": "passed",
+    "unit": {
+      "passed": 56,
+      "skipped": 0,
+      "real_redis": true
+    },
+    "playwright": {
+      "passed": 20,
+      "real_django_journeys": 1,
+      "other_ui_mock_and_browser_checks": 19,
+      "browser": "sandbox Chromium"
+    },
+    "backend_regression": {
+      "discovered": 199,
+      "passed": 189,
+      "skipped": 10,
+      "database": "SQLite"
+    },
+    "audit_all_dependencies": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "visual": {
+    "routes": 16,
+    "viewports": [360, 390, 768, 1024, 1440],
+    "initial_captures": 37,
+    "changed_route_recaptures": 12,
+    "final_home_recaptures": 2,
+    "individual_image_inspection": true,
+    "overflow_observed": false,
+    "page_errors_in_capture": 0,
+    "fixtures": "isolated test data, not actual shop catalogue"
+  },
+  "lighthouse": {
+    "version": "13.5.0",
+    "fetchTime": "2026-10-14T12:09:55.796Z",
+    "scores": {
+      "performance": 91,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "metrics": {
+      "largest-contentful-paint": {
+        "value": 3267.859,
+        "display": "3.3 s"
+      },
+      "cumulative-layout-shift": {
+        "value": 0,
+        "display": "0"
+      },
+      "total-blocking-time": {
+        "value": 129.5,
+        "display": "130 ms"
+      },
+      "first-contentful-paint": {
+        "value": 1237.359,
+        "display": "1.2 s"
+      }
+    },
+    "conditions": {
+      "output": ["json"],
+      "maxWaitForFcp": 30000,
+      "maxWaitForLoad": 45000,
+      "pauseAfterFcpMs": 1000,
+      "pauseAfterLoadMs": 1000,
+      "networkQuietThresholdMs": 1000,
+      "cpuQuietThresholdMs": 1000,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "throttlingMethod": "simulate",
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "emulatedUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36",
+      "auditMode": false,
+      "gatherMode": false,
+      "clearStorageTypes": [
+        "file_systems",
+        "shader_cache",
+        "service_workers",
+        "cache_storage"
+      ],
+      "disableStorageReset": false,
+      "debugNavigation": false,
+      "channel": "cli",
+      "usePassiveGathering": false,
+      "disableFullPageScreenshot": false,
+      "skipAboutBlank": false,
+      "blankPage": "about:blank",
+      "ignoreStatusCode": false,
+      "locale": "en-US",
+      "blockedUrlPatterns": null,
+      "additionalTraceCategories": null,
+      "extraHeaders": null,
+      "precomputedLanternData": null,
+      "onlyAudits": null,
+      "onlyCategories": [
+        "performance",
+        "accessibility",
+        "best-practices",
+        "seo"
+      ],
+      "skipAudits": null
+    },
+    "target_lcp_met": false,
+    "target_cls_met": true,
+    "note": "single local lab run, production build, two isolated products; not production user metrics"
+  },
+  "not_run": [
+    "PostgreSQL suite this turn",
+    "Firefox/WebKit or real mobile devices",
+    "live SMS or external sandbox/live gateway",
+    "production deployment",
+    "penetration test",
+    "multi-replica staging/crash testing"
+  ],
+  "release_blockers": [
+    "callback remains Django HTML; automatic Next return requires backend approval",
+    "trusted client-IP/throttle behind BFF",
+    "public reachable gateway callback origin",
+    "LCP mobile lab still above 2.5s target",
+    "approved brand/domain/images/sales policies and SMS/gateway configuration"
+  ]
+}
