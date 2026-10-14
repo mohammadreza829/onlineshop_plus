@@ -54,7 +54,10 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["status", "created_at"], name="payment_status_created_idx")]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="payment_status_created_idx"),
+            models.Index(fields=["status", "verified_at"], name="payment_verified_at_idx"),
+        ]
         verbose_name = "پرداخت"
         verbose_name_plural = "پرداخت‌ها"
 

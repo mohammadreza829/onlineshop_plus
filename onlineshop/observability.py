@@ -9,6 +9,7 @@ import uuid
 from datetime import UTC, datetime
 
 from django.conf import settings
+from django.db import connection
 
 request_id = contextvars.ContextVar("request_id", default=None)
 
@@ -35,7 +36,18 @@ class JSONFormatter(logging.Formatter):
             "message": redact(record.getMessage()),
             "request_id": request_id.get(),
         }
-        for field in ("status_code", "duration_ms", "method", "path", "dependency", "task_id"):
+        for field in (
+            "status_code",
+            "duration_ms",
+            "method",
+            "path",
+            "route",
+            "dependency",
+            "task_id",
+            "db_queries",
+            "db_duration_ms",
+            "slow_query_count",
+        ):
             if hasattr(record, field):
                 value = getattr(record, field)
                 payload[field] = redact(value) if isinstance(value, str) else value
@@ -56,14 +68,30 @@ class RequestLogMiddleware:
             correlation = str(uuid.uuid4())
         token = request_id.set(correlation)
         started = time.monotonic()
+        stats = {"db_queries": 0, "db_duration_ms": 0.0, "slow_query_count": 0}
+
+        def measure_query(execute, sql, params, many, context):
+            query_started = time.monotonic()
+            try:
+                return execute(sql, params, many, context)
+            finally:
+                elapsed = (time.monotonic() - query_started) * 1000
+                stats["db_queries"] += 1
+                stats["db_duration_ms"] += elapsed
+                stats["slow_query_count"] += int(elapsed >= settings.SLOW_QUERY_MS)
+
         try:
-            response = self.get_response(request)
+            with connection.execute_wrapper(measure_query):
+                response = self.get_response(request)
             response["X-Request-ID"] = correlation
+            route = request.resolver_match.route if request.resolver_match else "unmatched"
             logging.getLogger("onlineshop.http").info(
                 "request_completed",
                 extra={
                     "method": request.method,
-                    "path": request.path,
+                    "path": "/" + route,
+                    "route": route,
+                    **stats,
                     "status_code": response.status_code,
                     "duration_ms": round((time.monotonic() - started) * 1000, 2),
                 },
