@@ -46,6 +46,8 @@ class CallbackOutcome:
 
 def start_payment(order, user, callback_url):
     """Return the gateway URL the customer must be redirected to."""
+    if order.user_id != user.pk:
+        raise PaymentError("سفارش متعلق به این کاربر نیست.")
     expire_order_if_needed(order)
     with transaction.atomic():
         order = Order.objects.select_for_update().get(pk=order.pk)

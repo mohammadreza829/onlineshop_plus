@@ -3,7 +3,6 @@ import logging
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -12,7 +11,7 @@ from orders.models import Order
 
 from . import otp
 from .forms import OTPCodeForm, PhoneLoginForm, UserProfileForm
-from .models import ShopUser
+from .services import authenticate_otp
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +25,6 @@ def _safe_next(request, value):
     ):
         return value
     return ""
-
-
-def _get_or_create_user(phone):
-    user = ShopUser.objects.filter(phone=phone).first()
-    if user:
-        return user
-    try:
-        with transaction.atomic():
-            # password=None -> unusable password: OTP is the only way in.
-            return ShopUser.objects.create_user(phone=phone, password=None)
-    except IntegrityError:  # two parallel verifications for a brand-new number
-        return ShopUser.objects.get(phone=phone)
 
 
 def login_view(request):
@@ -82,19 +69,10 @@ def verify_code_view(request):
 
     if request.method == "POST" and form.is_valid():
         try:
-            ok = otp.verify_code(phone, form.cleaned_data["code"])
+            user = authenticate_otp(phone, form.cleaned_data["code"])
         except otp.OTPError as exc:
             messages.error(request, str(exc))
-            ok = False
         else:
-            if not ok:
-                messages.error(request, "کد تایید وارد شده اشتباه است.")
-
-        if ok:
-            user = _get_or_create_user(phone)
-            if not user.is_active:
-                messages.error(request, "حساب کاربری شما غیرفعال است.")
-                return redirect("account:login")
             next_url = request.session.get(SESSION_NEXT) or ""
             # login() rotates the session key (session fixation) but keeps the cart.
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")

@@ -30,7 +30,10 @@
                         <a href="{% url 'addresses:address_edit' addr.id %}" style="color: #007bff;">ویرایش</a> |
                         <a href="{% url 'addresses:address_delete' addr.id %}" style="color: red;">حذف</a>
                         {% if not addr.is_default %}
-                            | <a href="{% url 'addresses:set_default' addr.id %}" style="color: #28a745;">تنظیم به عنوان پیش‌فرض</a>
+                            | <form method="post" action="{% url 'addresses:set_default' addr.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" style="color: #28a745;">تنظیم به عنوان پیش‌فرض</button>
+                              </form>
                         {% endif %}
                     </div>
                 </div>

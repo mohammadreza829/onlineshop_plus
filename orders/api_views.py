@@ -1,16 +1,22 @@
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import permissions, status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from addresses.models import Address
+from addresses.selectors import addresses_for_user
+from api.serializers import (
+    CartSerializer,
+    CheckoutResponseSerializer,
+    MessageSerializer,
+    OrderFilterSerializer,
+)
 from cart.cart import Cart
 from shop.models import Product
 
-from .models import Order
+from .selectors import orders_for_user
 from .serializers import CartItemAddSerializer, OrderCreateSerializer, OrderDetailSerializer
 from .services import OrderCreationError, create_order_from_cart
 
@@ -22,7 +28,9 @@ class CartAPIView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "cart"
 
+    @extend_schema(responses=CartSerializer, tags=["Cart"])
     def get(self, request):
         """مشاهده محتویات سبد خرید جاری"""
         cart = Cart(request)
@@ -39,7 +47,7 @@ class CartAPIView(APIView):
         ]
         return Response({"items": items, **cart.summary()})
 
-    @extend_schema(request=CartItemAddSerializer)
+    @extend_schema(request=CartItemAddSerializer, responses=MessageSerializer, tags=["Cart"])
     def post(self, request):
         """افزودن محصول به سبد خرید"""
         serializer = CartItemAddSerializer(data=request.data)
@@ -51,6 +59,7 @@ class CartAPIView(APIView):
         response_status = status.HTTP_200_OK if result.success else status.HTTP_400_BAD_REQUEST
         return Response({"detail": result.message}, status=response_status)
 
+    @extend_schema(responses=MessageSerializer, tags=["Cart"])
     def delete(self, request, product_id=None):
         """حذف یک محصول مشخص یا پاک‌سازی کل سبد خرید"""
         cart = Cart(request)
@@ -64,6 +73,7 @@ class CartAPIView(APIView):
         return Response({"detail": result.message}, status=response_status)
 
 
+@extend_schema_view(get=extend_schema(parameters=[OrderFilterSerializer], tags=["Orders"]))
 class OrderListAPIView(ListAPIView):
     """
     مشاهده لیست سفارش‌های کاربر جاری با امکان فیلتر بر اساس status
@@ -74,13 +84,12 @@ class OrderListAPIView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Order.objects.filter(user=self.request.user).prefetch_related("items")
-        status_filter = self.request.query_params.get("status")
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        return queryset
+        params = OrderFilterSerializer(data=self.request.query_params)
+        params.is_valid(raise_exception=True)
+        return orders_for_user(self.request.user, status=params.validated_data.get("status"))
 
 
+@extend_schema_view(get=extend_schema(tags=["Orders"]))
 class OrderDetailAPIView(RetrieveAPIView):
     """مشاهده جزئیات یک سفارش مشخص"""
 
@@ -89,7 +98,7 @@ class OrderDetailAPIView(RetrieveAPIView):
     lookup_field = "id"
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).prefetch_related("items")
+        return orders_for_user(self.request.user)
 
 
 class OrderCreateAPIView(APIView):
@@ -97,7 +106,11 @@ class OrderCreateAPIView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(request=OrderCreateSerializer, responses={201: OrderDetailSerializer})
+    throttle_scope = "checkout"
+
+    @extend_schema(
+        request=OrderCreateSerializer, responses={201: CheckoutResponseSerializer}, tags=["Orders"]
+    )
     def post(self, request):
         serializer = OrderCreateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -107,7 +120,7 @@ class OrderCreateAPIView(APIView):
             return Response({"detail": "سبد خرید شما خالی است."}, status=status.HTTP_400_BAD_REQUEST)
 
         selected_address = get_object_or_404(
-            Address, id=serializer.validated_data["address_id"], user=request.user
+            addresses_for_user(request.user), id=serializer.validated_data["address_id"]
         )
 
         try:
@@ -120,8 +133,40 @@ class OrderCreateAPIView(APIView):
                 "message": "سفارش با موفقیت ساخته شد.",
                 # POST to this URL (session auth + CSRF) to be redirected to the gateway.
                 "payment_url": request.build_absolute_uri(reverse("payment:process", args=[order.id])),
+                "payment_api_url": request.build_absolute_uri(
+                    reverse("api_v1:order_payment", args=[order.id])
+                ),
                 "reserved_until": order.reserved_until,
                 "order": OrderDetailSerializer(order).data,
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class CartItemDeleteAPIView(CartAPIView):
+    http_method_names = ["delete", "options"]
+
+
+@extend_schema(exclude=True)
+class LegacyCartAPIView(CartAPIView):
+    pass
+
+
+@extend_schema(exclude=True)
+class LegacyCartItemDeleteAPIView(CartItemDeleteAPIView):
+    pass
+
+
+@extend_schema(exclude=True)
+class LegacyOrderListAPIView(OrderListAPIView):
+    pass
+
+
+@extend_schema(exclude=True)
+class LegacyOrderDetailAPIView(OrderDetailAPIView):
+    pass
+
+
+@extend_schema(exclude=True)
+class LegacyOrderCreateAPIView(OrderCreateAPIView):
+    pass

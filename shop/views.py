@@ -1,8 +1,8 @@
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 
-from .models import Category, Product
+from .models import Category
+from .selectors import catalog_detail, catalog_products
 
 # ==========================================
 # Product List
@@ -10,61 +10,13 @@ from .models import Category, Product
 
 
 def product_list(request):
-    products = Product.objects.filter(is_active=True).select_related("category")
-
-    # ==========================
-    # Search
-    # ==========================
-
     query = request.GET.get("q")
-
-    if query:
-        products = products.filter(
-            Q(name__icontains=query) | Q(description__icontains=query) | Q(sku__icontains=query)
-        )
-
-    # ==========================
-    # Category Filter
-    # ==========================
-
-    category_slug = request.GET.get("category")
-
-    if category_slug:
-        products = products.filter(category__slug=category_slug)
-
-    # ==========================
-    # Stock Filter
-    # ==========================
-
-    stock = request.GET.get("stock")
-
-    if stock == "available":
-        products = products.filter(inventory__gt=0)
-
-    elif stock == "out":
-        products = products.filter(inventory=0)
-
-    # ==========================
-    # Sorting
-    # ==========================
-
-    sort = request.GET.get("sort")
-
-    if sort == "price_low":
-        products = products.order_by("price")
-
-    elif sort == "price_high":
-        products = products.order_by("-price")
-
-    elif sort == "oldest":
-        products = products.order_by("created")
-
-    else:
-        products = products.order_by("-created")
-
-    # ==========================
-    # Pagination
-    # ==========================
+    ordering = {"price_low": "price", "price_high": "-price", "oldest": "created"}.get(
+        request.GET.get("sort"), "-created"
+    )
+    products = catalog_products(
+        search=query, category=request.GET.get("category"), stock=request.GET.get("stock"), ordering=ordering
+    )
 
     paginator = Paginator(products, 12)
 
@@ -95,7 +47,7 @@ def product_list(request):
 
 
 def product_detail(request, slug):
-    product = get_object_or_404(Product, slug=slug, is_active=True)
+    product = get_object_or_404(catalog_detail(), slug=slug)
     phone = request.session.get("phone")
     context = {"product": product, "phone": phone}
 
@@ -110,7 +62,7 @@ def product_detail(request, slug):
 def category_products(request, slug):
     category = get_object_or_404(Category, slug=slug)
 
-    products = Product.objects.filter(category=category, is_active=True)
+    products = catalog_products(category=category.slug)
 
     context = {"category": category, "products": products}
 
@@ -122,7 +74,7 @@ def home_view(request):
     نمایش صفحه اصلی فروشگاه (اصلی / Index)
     """
     categories = Category.objects.all()[:6]  # دریافت ۶ دسته‌بندی اول
-    latest_products = Product.objects.filter(is_active=True).order_by("-created")[:8]  # جدیدترین محصولات
+    latest_products = catalog_products()[:8]  # جدیدترین محصولات
 
     return render(
         request,
