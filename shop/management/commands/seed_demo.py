@@ -90,7 +90,7 @@ def illustration(kind, color, number):
 
 
 class Command(BaseCommand):
-    help = "Add 36 clearly labelled demo products to the isolated laptop DB. Never resets existing data."
+    help = "Add 36 catalogue products to the isolated laptop DB; normalize legacy demo name suffixes only."
 
     def handle(self, *args, **options):
         actual = connection.settings_dict["NAME"]
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             raise CommandError("DEMO10 already exists with different terms; no data changed.")
         for ci, (slug, name, _kind) in enumerate(CATEGORIES):
             category = Category.objects.filter(slug=f"demo-{slug}").first()
-            if category and category.name != f"{name} (دمو)":
+            if category and category.name not in (name, f"{name} (دمو)"):
                 raise CommandError(f"Category collision: demo-{slug}; no data changed.")
             for j in range(6):
                 sku = f"LAPTOP-DEMO-{ci + 1:02d}-{j + 1:02d}"
@@ -122,13 +122,14 @@ class Command(BaseCommand):
                     raise CommandError(f"Product collision: {sku}; no data changed.")
         files = []
         created = 0
+        renamed = 0
         timestamp = timezone.now()
         try:
             with transaction.atomic():
                 for ci, (slug, name, kind) in enumerate(CATEGORIES):
-                    category, _ = Category.objects.get_or_create(
-                        slug=f"demo-{slug}", defaults={"name": f"{name} (دمو)"}
-                    )
+                    category, _ = Category.objects.get_or_create(slug=f"demo-{slug}", defaults={"name": name})
+                    # Only normalize the exact old seed label; never rewrite custom names.
+                    renamed += Category.objects.filter(pk=category.pk, name=f"{name} (دمو)").update(name=name)
                     for j, style in enumerate(STYLES):
                         sku = f"LAPTOP-DEMO-{ci + 1:02d}-{j + 1:02d}"
                         price = 390000 + ci * 95000 + j * 45000
@@ -137,7 +138,7 @@ class Command(BaseCommand):
                             defaults={
                                 "slug": f"demo-{slug}-{j + 1}",
                                 "category": category,
-                                "name": f"{name} {style} (دمو)",
+                                "name": f"{name} {style}",
                                 "price": price,
                                 "off": [0, 10, 0, 20, 0, 0][j],
                                 "inventory": 0 if j == 5 else 18,
@@ -145,7 +146,10 @@ class Command(BaseCommand):
                             },
                         )
                         if not fresh:
-                            continue  # Preserve edits, sold stock and deleted/replaced images on rerun.
+                            renamed += Product.objects.filter(
+                                pk=product.pk, name=f"{name} {style} (دمو)"
+                            ).update(name=f"{name} {style}")
+                            continue  # Preserve other edits, sold stock and deleted/replaced images.
                         created += 1
                         # Interleave categories in newest-first lists, rather than
                         # filling the home page with only the last seeded category.
@@ -167,7 +171,9 @@ class Command(BaseCommand):
                                         else 12,
                                     )
                         ProductFeatures.objects.create(
-                            product=product, name="نوع داده", value="دموی ساختگی؛ غیرقابل فروش"
+                            product=product,
+                            name="نوع داده",
+                            value="دموی ساختگی؛ غیرقابل فروش",
                         )
                         ProductFeatures.objects.create(product=product, name="فرم نمایشی", value=style)
                         image = ProductImage(
@@ -183,7 +189,12 @@ class Command(BaseCommand):
                         files.append((image.image.storage, image.image.name))
                         image.save()
                 Coupon.objects.get_or_create(
-                    code="DEMO10", defaults={"kind": Coupon.PERCENT, "value": 10, "per_user_limit": 100}
+                    code="DEMO10",
+                    defaults={
+                        "kind": Coupon.PERCENT,
+                        "value": 10,
+                        "per_user_limit": 100,
+                    },
                 )
         except Exception:
             for storage, name in files:
@@ -191,7 +202,8 @@ class Command(BaseCommand):
             raise
         self.stdout.write(
             self.style.SUCCESS(
-                f"Demo ready: {created} new products; existing products unchanged. Coupon: DEMO10 (10%)."
+                f"Demo ready: {created} new products; {renamed} legacy names normalized. "
+                "Other existing product data unchanged. Coupon: DEMO10 (10%)."
             )
         )
         self.stdout.write(
