@@ -9,8 +9,8 @@ from .services import OrderActionError, advance_order, retry_reservation
 # Order Item Inline
 # ==========================================
 
-class OrderItemInline(admin.TabularInline):
 
+class OrderItemInline(admin.TabularInline):
     model = OrderItem
 
     extra = 0
@@ -26,14 +26,13 @@ class OrderItemInline(admin.TabularInline):
     )
 
 
-
 # ==========================================
 # Order Admin
 # ==========================================
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-
     list_display = (
         "id",
         "colored_status",
@@ -62,9 +61,7 @@ class OrderAdmin(admin.ModelAdmin):
         "postal_code",
     )
 
-    ordering = (
-        "-created",
-    )
+    ordering = ("-created",)
 
     date_hierarchy = "created"
 
@@ -84,7 +81,6 @@ class OrderAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-
         (
             "اطلاعات مشتری",
             {
@@ -96,9 +92,8 @@ class OrderAdmin(admin.ModelAdmin):
                     "address",
                     "postal_code",
                 )
-            }
+            },
         ),
-
         (
             "وضعیت سفارش",
             {
@@ -111,9 +106,8 @@ class OrderAdmin(admin.ModelAdmin):
                     "stock_reserved",
                     "reserved_until",
                 )
-            }
+            },
         ),
-
         (
             "مبالغ",
             {
@@ -122,9 +116,8 @@ class OrderAdmin(admin.ModelAdmin):
                     "total_price",
                     "items_count",
                 )
-            }
+            },
         ),
-
         (
             "تاریخ‌ها",
             {
@@ -132,9 +125,8 @@ class OrderAdmin(admin.ModelAdmin):
                     "created",
                     "updated",
                 )
-            }
+            },
         ),
-
     )
 
     inlines = [
@@ -150,52 +142,32 @@ class OrderAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-
         queryset = super().get_queryset(request)
 
-        return (
-            queryset
-            .select_related("user")
-            .prefetch_related("items")
-            .annotate(
-                items_total=Count("items")
-            )
-        )
+        return queryset.select_related("user").prefetch_related("items").annotate(items_total=Count("items"))
 
     def customer(self, obj):
-
         return f"{obj.first_name} {obj.last_name}"
 
     customer.short_description = "مشتری"
 
     def items_count(self, obj):
-
         return obj.items_total
 
     items_count.short_description = "تعداد آیتم"
 
     def colored_status(self, obj):
-
         colors = {
-
             "pending": "#ff9800",
-
             "paid": "#4caf50",
-
             "sent": "#2196f3",
-
             "canceled": "#f44336",
-
         }
 
         return format_html(
-
             '<strong style="color:{};">{}</strong>',
-
             colors.get(obj.status, "#000"),
-
             obj.get_status_display(),
-
         )
 
     colored_status.short_description = "وضعیت"

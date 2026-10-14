@@ -200,8 +200,12 @@ class CheckoutViewTests(TestCase):
     def test_pages_render(self):
         self.client.post(reverse("orders:order_create"), {"address_id": self.address.id})
         order = Order.objects.get()
-        for url in (reverse("orders:order_list"), reverse("orders:order_detail", args=[order.id]),
-                    reverse("account:profile"), reverse("orders:order_create")):
+        for url in (
+            reverse("orders:order_list"),
+            reverse("orders:order_detail", args=[order.id]),
+            reverse("account:profile"),
+            reverse("orders:order_create"),
+        ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
@@ -228,7 +232,9 @@ class CheckoutViewTests(TestCase):
 
     def test_api_create_order(self):
         response = self.client.post(
-            reverse("orders:api_order_create"), {"address_id": self.address.id}, content_type="application/json"
+            reverse("orders:api_order_create"),
+            {"address_id": self.address.id},
+            content_type="application/json",
         )
         self.assertEqual(response.status_code, 201, response.content)
         self.assertIn("/payment/process/", response.json()["payment_url"])
@@ -240,7 +246,9 @@ class CartViewTests(TestCase):
         product = make_product(inventory=5)
         for quantity in ("abc", "-1", "0", "1000000"):
             with self.subTest(quantity=quantity):
-                response = self.client.post(reverse("cart:cart_add", args=[product.id]), {"quantity": quantity})
+                response = self.client.post(
+                    reverse("cart:cart_add", args=[product.id]), {"quantity": quantity}
+                )
                 self.assertEqual(response.status_code, 302)
         self.assertEqual(self.client.session.get("cart", {}), {})
 

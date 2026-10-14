@@ -62,14 +62,14 @@ from .models import ShopUser
 class ShopUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = ShopUser
-        fields = ('phone', 'first_name', 'last_name', 'address')
+        fields = ("phone", "first_name", "last_name", "address")
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
+        phone = self.cleaned_data.get("phone")
 
         if not phone.isdigit():
             raise forms.ValidationError("شماره تلفن باید فقط شامل ارقام باشد.")
-        if not phone.startswith('09'):
+        if not phone.startswith("09"):
             raise forms.ValidationError("شماره تلفن باید با 09 شروع شود.")
         if len(phone) != 11:
             raise forms.ValidationError("شماره تلفن باید دقیقاً 11 رقم باشد.")
@@ -83,14 +83,14 @@ class ShopUserCreationForm(UserCreationForm):
 class ShopUserChangeForm(UserChangeForm):
     class Meta:
         model = ShopUser
-        fields = ('phone', 'first_name', 'last_name', 'is_active', 'is_staff', 'address')
+        fields = ("phone", "first_name", "last_name", "is_active", "is_staff", "address")
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
+        phone = self.cleaned_data.get("phone")
 
         if not phone.isdigit():
             raise forms.ValidationError("شماره تلفن باید فقط شامل ارقام باشد.")
-        if not phone.startswith('09'):
+        if not phone.startswith("09"):
             raise forms.ValidationError("شماره تلفن باید با 09 شروع شود.")
         if len(phone) != 11:
             raise forms.ValidationError("شماره تلفن باید دقیقاً 11 رقم باشد.")
@@ -105,18 +105,21 @@ class ShopUserChangeForm(UserChangeForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = ShopUser
-        fields = ('first_name', 'last_name', 'address')
+        fields = ("first_name", "last_name", "address")
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام خانوادگی'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'آدرس کامل'}),
+            "first_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "نام"}),
+            "last_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "نام خانوادگی"}),
+            "address": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "آدرس کامل"}),
         }
+
 
 class PhoneLoginForm(forms.Form):
     phone = forms.CharField(
         max_length=20,
         label="شماره موبایل",
-        widget=forms.TextInput(attrs={"inputmode": "numeric", "autocomplete": "tel", "placeholder": "09121234567"}),
+        widget=forms.TextInput(
+            attrs={"inputmode": "numeric", "autocomplete": "tel", "placeholder": "09121234567"}
+        ),
     )
 
     def clean_phone(self):

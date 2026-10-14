@@ -59,12 +59,13 @@ def reservation_deadline():
 # Stock primitives (must run inside transaction.atomic)
 # ----------------------------------------------------------------------
 
+
 def _reserve(lines):
     """lines: iterable of (product_id, quantity, product_name). Raises InsufficientStock."""
     for product_id, quantity, name in sorted(lines, key=lambda line: line[0]):
-        updated = Product.objects.filter(
-            pk=product_id, is_active=True, inventory__gte=quantity
-        ).update(inventory=F("inventory") - quantity)
+        updated = Product.objects.filter(pk=product_id, is_active=True, inventory__gte=quantity).update(
+            inventory=F("inventory") - quantity
+        )
         if updated != 1:
             raise InsufficientStock(name)
 
@@ -90,6 +91,7 @@ def _lock(order_or_id):
 # ----------------------------------------------------------------------
 # Checkout
 # ----------------------------------------------------------------------
+
 
 def build_shipping_snapshot(address, user):
     """Copy address data into the order so later address edits don't change history."""
@@ -130,9 +132,7 @@ def create_order_from_cart(cart, address, user):
         for old_order in Order.objects.filter(user=user, status=Order.STATUS_PENDING, is_paid=False):
             cancel_order(old_order, reason="replaced by a new checkout")
 
-        products = list(
-            Product.objects.select_for_update().filter(id__in=quantities.keys()).order_by("pk")
-        )
+        products = list(Product.objects.select_for_update().filter(id__in=quantities.keys()).order_by("pk"))
         if len(products) != len(quantities):
             raise OrderCreationError("یکی از محصولات حذف شده است.")
 
@@ -171,6 +171,7 @@ def create_order_from_cart(cart, address, user):
 # ----------------------------------------------------------------------
 # Lifecycle
 # ----------------------------------------------------------------------
+
 
 def cancel_order(order, reason=""):
     """Cancel an order and give its stock back. Idempotent for already-canceled orders."""
@@ -241,7 +242,9 @@ def mark_order_paid(order, ref_id):
         except InsufficientStock as exc:
             logger.critical(
                 "Order %s paid (ref %s) but stock for %s is gone -> needs review/refund",
-                order.order_number, ref_id, exc.product_name,
+                order.order_number,
+                ref_id,
+                exc.product_name,
             )
 
     target = Order.STATUS_PAID if order.stock_reserved else Order.STATUS_NEEDS_REVIEW
@@ -282,9 +285,7 @@ def advance_order(order, new_status):
         if order.status == new_status:
             return order
         if not order.can_transition_to(new_status):
-            raise OrderActionError(
-                f"تغییر وضعیت از «{order.get_status_display()}» به این وضعیت مجاز نیست."
-            )
+            raise OrderActionError(f"تغییر وضعیت از «{order.get_status_display()}» به این وضعیت مجاز نیست.")
         if new_status == Order.STATUS_PREPARING and not order.stock_reserved:
             raise OrderActionError("ابتدا موجودی این سفارش را تامین کنید (سفارش موجودی رزرو‌شده ندارد).")
         order.transition_to(new_status)

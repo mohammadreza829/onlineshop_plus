@@ -36,24 +36,21 @@ from .models import ShopUser
 
 @admin.register(ShopUser)
 class CustomUserAdmin(UserAdmin):
-    ordering = ['phone']
+    ordering = ["phone"]
     add_form = ShopUserCreationForm
     form = ShopUserChangeForm
     model = ShopUser
-    list_display = ('phone', 'last_name', 'first_name',
-                    'is_active', 'is_staff')
+    list_display = ("phone", "last_name", "first_name", "is_active", "is_staff")
 
     fieldsets = (
-        (None, {'fields': ('phone', 'password')}),
-        ('اطلاعات شخصی', {'fields': ('first_name', 'last_name', 'address')}),
-        ('دسترسی‌ها', {'fields': ('is_active', 'is_staff',
-         'is_superuser', 'groups', 'user_permissions')}),
-        ('تاریخ‌ها', {'fields': ('last_login', 'date_joined')}),
+        (None, {"fields": ("phone", "password")}),
+        ("اطلاعات شخصی", {"fields": ("first_name", "last_name", "address")}),
+        ("دسترسی‌ها", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("تاریخ‌ها", {"fields": ("last_login", "date_joined")}),
     )
 
     add_fieldsets = (
-        (None, {'fields': ('phone', 'password1', 'password2')}),
-        ('اطلاعات شخصی', {'fields': ('first_name', 'last_name', 'address')}),
-        ('دسترسی‌ها', {'fields': ('is_active', 'is_staff',
-         'is_superuser', 'groups', 'user_permissions')}),
+        (None, {"fields": ("phone", "password1", "password2")}),
+        ("اطلاعات شخصی", {"fields": ("first_name", "last_name", "address")}),
+        ("دسترسی‌ها", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
     )

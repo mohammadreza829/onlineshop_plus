@@ -96,7 +96,8 @@ def _verify_locked(payment):
             payment.needs_refund = True
             logger.critical(
                 "Duplicate payment %s for already-paid order %s -> refund needed",
-                payment.pk, order.order_number,
+                payment.pk,
+                order.order_number,
             )
         else:
             mark_order_paid(order, result.ref_id)

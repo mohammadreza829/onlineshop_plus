@@ -36,9 +36,21 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "order_number", "first_name", "last_name", "phone",
-            "address", "postal_code", "post_price", "total_price", "status",
-            "status_display", "is_paid", "ref_id", "items", "created",
+            "id",
+            "order_number",
+            "first_name",
+            "last_name",
+            "phone",
+            "address",
+            "postal_code",
+            "post_price",
+            "total_price",
+            "status",
+            "status_display",
+            "is_paid",
+            "ref_id",
+            "items",
+            "created",
         ]
         read_only_fields = fields
 

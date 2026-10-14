@@ -45,9 +45,7 @@ class CartAPIView(APIView):
         serializer = CartItemAddSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        product = get_object_or_404(
-            Product, id=serializer.validated_data["product_id"], is_active=True
-        )
+        product = get_object_or_404(Product, id=serializer.validated_data["product_id"], is_active=True)
         result = Cart(request).add(product=product, quantity=serializer.validated_data["quantity"])
 
         response_status = status.HTTP_200_OK if result.success else status.HTTP_400_BAD_REQUEST

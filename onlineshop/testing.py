@@ -86,11 +86,15 @@ class FakeGateway:
         if not self.request_ok:
             return RequestResult(ok=False, code=-9, error="rejected")
         authority = next(self._authorities)
-        return RequestResult(ok=True, authority=authority, payment_url=f"https://gw.test/StartPay/{authority}", code=100)
+        return RequestResult(
+            ok=True, authority=authority, payment_url=f"https://gw.test/StartPay/{authority}", code=100
+        )
 
     def verify(self, amount_toman, authority):
         self.verify_calls += 1
         if self.verify_status == VerifyStatus.SUCCESS:
-            return VerifyResult(status=VerifyStatus.SUCCESS, ref_id=self.ref_id, card_pan="6037****1234", code=100)
+            return VerifyResult(
+                status=VerifyStatus.SUCCESS, ref_id=self.ref_id, card_pan="6037****1234", code=100
+            )
         code = -51 if self.verify_status == VerifyStatus.FAILED else None
         return VerifyResult(status=self.verify_status, code=code)

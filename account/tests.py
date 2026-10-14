@@ -24,8 +24,16 @@ OTP_SETTINGS = dict(
 
 class NormalizePhoneTests(TestCase):
     def test_accepts_common_formats(self):
-        for raw in ["09121234567", "9121234567", "+989121234567", "00989121234567",
-                    "989121234567", "۰۹۱۲۱۲۳۴۵۶۷", "0912 123 4567", "0912-123-4567"]:
+        for raw in [
+            "09121234567",
+            "9121234567",
+            "+989121234567",
+            "00989121234567",
+            "989121234567",
+            "۰۹۱۲۱۲۳۴۵۶۷",
+            "0912 123 4567",
+            "0912-123-4567",
+        ]:
             with self.subTest(raw=raw):
                 self.assertEqual(otp.normalize_phone(raw), "09121234567")
 

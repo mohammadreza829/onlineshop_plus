@@ -57,12 +57,19 @@ class ZarinpalGatewayTests(SimpleTestCase):
     @mock.patch("payment.gateway.requests.post")
     def test_verify_classification(self, post):
         cases = [
-            (fake_response(json_body={"data": {"code": 100, "ref_id": 201, "card_pan": "5022****1234"}}), VerifyStatus.SUCCESS),
+            (
+                fake_response(json_body={"data": {"code": 100, "ref_id": 201, "card_pan": "5022****1234"}}),
+                VerifyStatus.SUCCESS,
+            ),
             (fake_response(json_body={"data": {"code": 101, "ref_id": 201}}), VerifyStatus.SUCCESS),
             (fake_response(422, {"data": [], "errors": {"code": -51}}), VerifyStatus.FAILED),
             (fake_response(422, {"data": [], "errors": {"code": -54}}), VerifyStatus.FAILED),
+            (fake_response(422, {"data": [], "errors": {"code": -50}}), VerifyStatus.UNKNOWN),
             (fake_response(422, {"data": [], "errors": {"code": -9}}), VerifyStatus.UNKNOWN),
-            (fake_response(json_body={"data": {"code": 100}}), VerifyStatus.UNKNOWN),  # success without ref_id
+            (
+                fake_response(json_body={"data": {"code": 100}}),
+                VerifyStatus.UNKNOWN,
+            ),  # success without ref_id
             (fake_response(502, raises=ValueError()), VerifyStatus.UNKNOWN),
             (fake_response(200, raises=ValueError()), VerifyStatus.UNKNOWN),
             (fake_response(200, ["not", "a", "dict"]), VerifyStatus.UNKNOWN),
@@ -98,6 +105,15 @@ class PaymentFlowTestBase(TestCase):
 
 
 class StartPaymentTests(PaymentFlowTestBase):
+    def test_blank_gateway_identifiers_are_empty_strings(self):
+        self.assertEqual(self.order.authority, "")
+        payment = Payment.objects.create(order=self.order, user=self.user, amount=self.order.total_price)
+        self.assertEqual(payment.ref_id, "")
+        self.order.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(self.order.authority, "")
+        self.assertEqual(payment.ref_id, "")
+
     def test_creates_payment_with_order_total(self):
         authority = self.start()
         payment = Payment.objects.get(authority=authority)

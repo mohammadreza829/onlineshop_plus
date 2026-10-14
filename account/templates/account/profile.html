@@ -9,7 +9,7 @@
 
     <!-- منوی دسترسی سریع به بخش‌های مختلف -->
     <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-        <a href="{% url 'addresses:address_list' %}" 
+        <a href="{% url 'addresses:address_list' %}"
            style="padding: 8px 16px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
             📍 مدیریت آدرس‌ها
         </a>
@@ -35,12 +35,12 @@
 
     <!-- بخش فیلتر بر اساس وضعیت سفارشات -->
     <div style="margin: 15px 0; display: flex; gap: 8px; flex-wrap: wrap;">
-        <a href="{% url 'account:profile' %}" 
+        <a href="{% url 'account:profile' %}"
            style="padding: 6px 12px; border-radius: 4px; text-decoration: none; border: 1px solid #ccc; {% if not selected_status %}background-color: #007bff; color: white;{% endif %}">
             همه سفارش‌ها
         </a>
         {% for code, label in status_choices %}
-            <a href="{% url 'account:profile' %}?status={{ code }}" 
+            <a href="{% url 'account:profile' %}?status={{ code }}"
                style="padding: 6px 12px; border-radius: 4px; text-decoration: none; border: 1px solid #ccc; {% if selected_status == code %}background-color: #007bff; color: white;{% endif %}">
                 {{ label }}
             </a>

@@ -27,8 +27,10 @@ TOMAN_TO_RIAL = 10
 
 # Verify codes that are a definitive "no money was captured".
 # -51: payment failed / canceled by user, -53: authority belongs to another merchant,
-# -54: invalid authority, -55: transaction not found, -50: amount mismatch.
-DEFINITIVE_FAILURE_CODES = {-50, -51, -53, -54, -55}
+# -54: invalid authority, -55: transaction not found.
+# An amount mismatch (-50) is NOT evidence that no money was captured:
+# preserve UNKNOWN so an operator can correct configuration and reconcile.
+DEFINITIVE_FAILURE_CODES = {-51, -53, -54, -55}
 SUCCESS_CODES = {100, 101}  # 101 = already verified (idempotent repeat)
 
 
@@ -145,8 +147,6 @@ class ZarinpalGateway:
                 raw=body,
             )
         if code in DEFINITIVE_FAILURE_CODES:
-            if code == -50:
-                logger.error("Zarinpal amount mismatch for authority %s", authority)
             return VerifyResult(status=VerifyStatus.FAILED, code=code, raw=body)
 
         logger.error("Zarinpal verify returned unexpected code=%s for %s", code, authority)

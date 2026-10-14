@@ -52,56 +52,35 @@ class Order(models.Model):
     }
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="orders",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+        settings.AUTH_USER_MODEL, related_name="orders", on_delete=models.CASCADE, null=True, blank=True
     )
     # اضافه کردن فیلد زیر:
-    address_obj = models.ForeignKey(AddressModel,
-                                    on_delete=models.SET_NULL,
-                                    null=True,
-                                    blank=True,
-                                    related_name='orders',
-                                    verbose_name='آدرس انتخاب‌شده'
-                                    )
+    address_obj = models.ForeignKey(
+        AddressModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+        verbose_name="آدرس انتخاب‌شده",
+    )
     first_name = models.CharField(max_length=100, verbose_name="نام")
     last_name = models.CharField(max_length=100, verbose_name="نام خانوادگی")
     phone = models.CharField(max_length=20, verbose_name="شماره تماس")
     address = models.TextField(verbose_name="آدرس")
     postal_code = models.CharField(max_length=20, verbose_name="کد پستی")
 
-    order_number = models.CharField(
-        max_length=32,
-        unique=True,
-        editable=False
-    )
+    order_number = models.CharField(max_length=32, unique=True, editable=False)
 
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_PENDING
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
 
-    post_price = models.DecimalField(
-        max_digits=12,
-        decimal_places=0,
-        default=0,
-        verbose_name="هزینه ارسال"
-    )
+    post_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="هزینه ارسال")
 
-    total_price = models.DecimalField(
-        max_digits=12,
-        decimal_places=0,
-        default=0,
-        verbose_name="مبلغ کل"
-    )
+    total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="مبلغ کل")
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-    authority = models.CharField(max_length=255, blank=True, null=True)
+    authority = models.CharField(max_length=255, blank=True, default="")
     is_paid = models.BooleanField(default=False)
     ref_id = models.CharField(max_length=255, blank=True)
     stock_reserved = models.BooleanField(
@@ -166,82 +145,32 @@ class Order(models.Model):
         return self.status == self.STATUS_PENDING and not self.is_paid
 
     def calculate_total(self):
-        items_total = (
-            self.items.aggregate(
-                total=Sum("total_price")
-            )["total"] or 0
-        )
+        items_total = self.items.aggregate(total=Sum("total_price"))["total"] or 0
         return items_total + self.post_price
 
 
 class OrderItem(models.Model):
+    order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
 
-    order = models.ForeignKey(
+    product = models.ForeignKey(Product, related_name="order_items", on_delete=models.SET_NULL, null=True)
 
-        Order,
+    product_name = models.CharField(max_length=250, verbose_name="نام محصول")
 
-        related_name="items",
+    price = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="قیمت واحد")
 
-        on_delete=models.CASCADE
+    quantity = models.PositiveIntegerField(default=1)
 
-    )
+    total_price = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="قیمت کل")
 
-    product = models.ForeignKey(
-
-        Product,
-
-        related_name="order_items",
-
-        on_delete=models.SET_NULL,
-
-        null=True
-
-    )
-
-    product_name = models.CharField(
-
-        max_length=250,
-
-        verbose_name="نام محصول"
-
-    )
-
-    price = models.DecimalField(
-        max_digits=12,
-        decimal_places=0,
-        verbose_name="قیمت واحد"
-    )
-
-    quantity = models.PositiveIntegerField(
-
-        default=1
-
-    )
-
-    total_price = models.DecimalField(
-        max_digits=12,
-        decimal_places=0,
-        verbose_name="قیمت کل"
-    )
-
-    product_sku = models.CharField(
-        max_length=50,
-        verbose_name="کد محصول"
-    )
+    product_sku = models.CharField(max_length=50, verbose_name="کد محصول")
     address_obj = models.ForeignKey(
-        'addresses.Address',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="آدرس ثبت‌شده"
+        "addresses.Address", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="آدرس ثبت‌شده"
     )
 
     class Meta:
-
         verbose_name = "آیتم سفارش"
 
         verbose_name_plural = "آیتم‌های سفارش"
 
     def __str__(self):
-
         return self.product_name

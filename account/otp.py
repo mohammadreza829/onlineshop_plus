@@ -10,7 +10,7 @@ Security properties (each one is tested in account/tests.py):
   (protects the SMS budget and stops SMS bombing a victim's number).
 
 Storage is Django's cache. With LocMemCache limits are per process; in
-production use a shared cache (Redis, phase 4) so limits hold across workers.
+production use a shared cache (Redis, phase 3) so limits hold across workers.
 """
 
 import logging
@@ -89,9 +89,11 @@ def send_code(phone, ip=None):
     if ip and _hit(_key("ip", ip), settings.OTP_MAX_SENDS_PER_IP_PER_HOUR, 3600):
         raise OTPError("تعداد درخواست‌ها از این شبکه بیش از حد مجاز است. بعداً تلاش کنید.", retry_after=3600)
     if _hit(_key("sends", phone), settings.OTP_MAX_SENDS_PER_PHONE_PER_HOUR, 3600):
-        raise OTPError("تعداد درخواست کد برای این شماره بیش از حد مجاز است. یک ساعت دیگر تلاش کنید.", retry_after=3600)
+        raise OTPError(
+            "تعداد درخواست کد برای این شماره بیش از حد مجاز است. یک ساعت دیگر تلاش کنید.", retry_after=3600
+        )
 
-    code = f"{secrets.randbelow(10 ** settings.OTP_LENGTH):0{settings.OTP_LENGTH}d}"
+    code = f"{secrets.randbelow(10**settings.OTP_LENGTH):0{settings.OTP_LENGTH}d}"
     cooldown = settings.OTP_RESEND_COOLDOWN_SECONDS
     cache.set(_key("code", phone), _hash(phone, code), timeout=settings.OTP_TTL_SECONDS)
     cache.delete(_key("attempts", phone))

@@ -39,7 +39,9 @@ def payment_verify(request):
     """
     authority = request.GET.get("Authority", "").strip()
     if not authority:
-        return render(request, "payment/payment_failed.html", {"error": "اطلاعات بازگشت از درگاه ناقص است."}, status=400)
+        return render(
+            request, "payment/payment_failed.html", {"error": "اطلاعات بازگشت از درگاه ناقص است."}, status=400
+        )
 
     try:
         outcome = process_callback(authority)
@@ -59,5 +61,7 @@ def payment_verify(request):
     if outcome.status == Payment.STATUS_UNKNOWN:
         return render(request, "payment/payment_pending.html", context)
 
-    context["error"] = "پرداخت انجام نشد یا توسط شما لغو شد. در صورت کسر وجه، مبلغ ظرف ۷۲ ساعت توسط بانک بازگردانده می‌شود."
+    context["error"] = (
+        "پرداخت انجام نشد یا توسط شما لغو شد. در صورت کسر وجه، مبلغ ظرف ۷۲ ساعت توسط بانک بازگردانده می‌شود."
+    )
     return render(request, "payment/payment_failed.html", context)

@@ -6,11 +6,11 @@
 <div style="max-width: 600px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
     <h2>{{ title }}</h2>
 
-    
+
 
     <form method="post">
         {% csrf_token %}
-        
+
         <div style="margin-bottom: 15px;">
             <label>عنوان آدرس (مثلاً خانه، محل کار):</label><br>
             {{ form.title }}
