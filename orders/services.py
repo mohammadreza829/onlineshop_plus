@@ -27,6 +27,7 @@ from shop.models import Product, ProductVariant
 from .coupons import CouponError, consume_coupon, release_coupon, reserve_coupon
 from .models import Order, OrderItem
 from .policies import may_cancel_order
+from .tracking import record_event, transition
 
 logger = logging.getLogger(__name__)
 
@@ -218,6 +219,7 @@ def create_order_from_cart(cart, address, user, coupon_code=""):
                 raise OrderCreationError(str(exc)) from exc
         order.total_price = order.calculate_total()
         order.save(update_fields=["total_price"])
+        record_event(order, kind="created")
 
     logger.info("Order %s created, stock reserved until %s", order.order_number, order.reserved_until)
     return order
@@ -240,7 +242,7 @@ def cancel_order(order, reason=""):
             _release(_order_lines(order))
             order.stock_reserved = False
         release_coupon(order)
-        order.transition_to(Order.STATUS_CANCELED)
+        transition(order, Order.STATUS_CANCELED)
         order.save(update_fields=["status", "stock_reserved", "updated"])
     logger.info("Order %s canceled (%s)", order.order_number, reason or "-")
     return order
@@ -256,7 +258,7 @@ def expire_order_if_needed(order):
             _release(_order_lines(order))
             order.stock_reserved = False
         release_coupon(order)
-        order.transition_to(Order.STATUS_EXPIRED)
+        transition(order, Order.STATUS_EXPIRED)
         order.save(update_fields=["status", "stock_reserved", "updated"])
     logger.info("Order %s expired, stock released", order.order_number)
     return True
@@ -290,6 +292,7 @@ def mark_order_paid(order, ref_id):
         order.paid_at = timezone.now()
         order.ref_id = ref_id
         order.save(update_fields=["is_paid", "paid_at", "ref_id", "updated"])
+        record_event(order, previous_status=order.status, kind="payment")
         return order
 
     if not order.stock_reserved:
@@ -307,7 +310,7 @@ def mark_order_paid(order, ref_id):
 
     coupon_ok = consume_coupon(order)
     target = Order.STATUS_PAID if order.stock_reserved and coupon_ok else Order.STATUS_NEEDS_REVIEW
-    order.transition_to(target)
+    transition(order, target)
     order.is_paid = True
     order.paid_at = timezone.now()
     order.ref_id = ref_id
@@ -330,7 +333,7 @@ def retry_reservation(order):
             raise OrderActionError(str(exc)) from exc
         order.stock_reserved = True
         if order.status == Order.STATUS_NEEDS_REVIEW:
-            order.transition_to(Order.STATUS_PREPARING)
+            transition(order, Order.STATUS_PREPARING)
         order.save(update_fields=["status", "stock_reserved", "updated"])
     return order
 
@@ -347,7 +350,7 @@ def advance_order(order, new_status):
             raise OrderActionError(f"تغییر وضعیت از «{order.get_status_display()}» به این وضعیت مجاز نیست.")
         if new_status == Order.STATUS_PREPARING and not order.stock_reserved:
             raise OrderActionError("ابتدا موجودی این سفارش را تامین کنید (سفارش موجودی رزرو‌شده ندارد).")
-        order.transition_to(new_status)
+        transition(order, new_status)
         order.save(update_fields=["status", "updated"])
     return order
 
@@ -358,3 +361,16 @@ def cancel_order_by_customer(order, user):
     if not may_cancel_order(user, order):
         raise OrderActionError("این سفارش قابل لغو نیست.")
     return cancel_order(order, reason="by customer")
+
+
+@transaction.atomic
+def update_shipping(order, *, carrier, tracking_code):
+    order = _lock(order)
+    if not order.is_paid or order.status not in (Order.STATUS_PREPARING, Order.STATUS_SENT):
+        raise OrderActionError("اطلاعات ارسال فقط برای سفارش پرداخت‌شده در حال آماده‌سازی یا ارسال مجاز است.")
+    if order.carrier == carrier and order.tracking_code == tracking_code:
+        return order
+    order.carrier, order.tracking_code = carrier, tracking_code
+    order.save(update_fields=["carrier", "tracking_code", "updated"])
+    record_event(order, previous_status=order.status, kind="tracking")
+    return order

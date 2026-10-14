@@ -342,6 +342,11 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Online Shop API",
     "DESCRIPTION": "Versioned catalog, OTP/JWT, addresses, session cart, orders and payment initiation. All prices are Toman.",
     "VERSION": "1.0.0",
+    "ENUM_NAME_OVERRIDES": {
+        "OrderStatusEnum": "orders.models.Order.STATUS_CHOICES",
+        "ReviewStatusEnum": ["pending", "approved", "rejected"],
+        "StaffOrderStatusEnum": ["preparing", "sent", "delivered", "canceled"],
+    },
 }
 
 

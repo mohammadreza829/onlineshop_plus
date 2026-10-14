@@ -78,6 +78,8 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = (
         "total_price",
         "post_price",
+        "carrier",
+        "tracking_code",
         "coupon_code",
         "coupon_discount",
         "order_number",

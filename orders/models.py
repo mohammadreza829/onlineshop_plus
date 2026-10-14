@@ -78,6 +78,10 @@ class Order(models.Model):
 
     total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="مبلغ کل")
 
+    event_sequence = models.PositiveIntegerField(default=0, editable=False)
+    carrier = models.CharField(max_length=80, blank=True)
+    tracking_code = models.CharField(max_length=100, blank=True)
+
     coupon_code = models.CharField(max_length=40, blank=True)
     coupon_discount = models.DecimalField(max_digits=12, decimal_places=0, default=0)
 
@@ -261,3 +265,47 @@ class CouponUse(models.Model):
 
     def __str__(self):
         return f"{self.coupon_id}/{self.order_id}: {self.state}"
+
+
+class OrderEvent(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="events")
+    sequence = models.PositiveIntegerField()
+    previous_status = models.CharField(max_length=20, blank=True)
+    status = models.CharField(max_length=20, choices=Order.STATUS_CHOICES)
+    kind = models.CharField(
+        max_length=20,
+        choices=[
+            ("created", "ایجاد"),
+            ("status", "وضعیت"),
+            ("tracking", "اطلاعات ارسال"),
+            ("payment", "تایید پرداخت"),
+        ],
+    )
+    carrier = models.CharField(max_length=80, blank=True)
+    tracking_code = models.CharField(max_length=100, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sequence"]
+        constraints = [
+            models.UniqueConstraint(fields=["order", "sequence"], name="unique_order_event_sequence")
+        ]
+
+    def __str__(self):
+        return f"{self.order_id}/{self.sequence}: {self.status}"
+
+
+class OrderNotification(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="order_notifications"
+    )
+    event = models.OneToOneField(OrderEvent, on_delete=models.CASCADE, related_name="notification")
+    read_at = models.DateTimeField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created", "-pk"]
+        indexes = [models.Index(fields=["user", "read_at"])]
+
+    def __str__(self):
+        return f"{self.user_id}/{self.event_id}"

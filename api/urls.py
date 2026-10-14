@@ -8,10 +8,15 @@ from orders.api_views import (
     OrderListAPIView,
 )
 
-from . import auth_views, shop_features, views
+from . import auth_views, operations, shop_features, views
 
 app_name = "api_v1"
 urlpatterns = [
+    path("notifications/", operations.NotificationListView.as_view(), name="notifications"),
+    path("notifications/<int:pk>/read/", operations.NotificationReadView.as_view(), name="notification_read"),
+    path("orders/<int:pk>/tracking/", operations.TrackingView.as_view(), name="tracking"),
+    path("staff/orders/<int:pk>/", operations.StaffOrderView.as_view(), name="staff_order"),
+    path("staff/sales/", operations.SalesDashboardView.as_view(), name="sales_dashboard"),
     path("auth/otp/request/", auth_views.OTPRequestView.as_view(), name="otp_request"),
     path("auth/otp/verify/", auth_views.OTPVerifyView.as_view(), name="otp_verify"),
     path("auth/token/refresh/", auth_views.RefreshView.as_view(), name="token_refresh"),

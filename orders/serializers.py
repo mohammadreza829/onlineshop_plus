@@ -63,6 +63,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "total_price",
             "coupon_code",
             "coupon_discount",
+            "carrier",
+            "tracking_code",
             "status",
             "status_display",
             "is_paid",
