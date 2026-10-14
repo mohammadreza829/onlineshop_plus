@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
@@ -77,6 +78,9 @@ class Order(models.Model):
 
     total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="مبلغ کل")
 
+    coupon_code = models.CharField(max_length=40, blank=True)
+    coupon_discount = models.DecimalField(max_digits=12, decimal_places=0, default=0)
+
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -146,7 +150,7 @@ class Order(models.Model):
 
     def calculate_total(self):
         items_total = self.items.aggregate(total=Sum("total_price"))["total"] or 0
-        return items_total + self.post_price
+        return items_total - self.coupon_discount + self.post_price
 
 
 class OrderItem(models.Model):
@@ -179,3 +183,81 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return self.product_name
+
+
+class Coupon(models.Model):
+    PERCENT = "percent"
+    FIXED = "fixed"
+    code = models.CharField(max_length=40, unique=True)
+    kind = models.CharField(max_length=10, choices=[(PERCENT, "درصد"), (FIXED, "مبلغ ثابت")])
+    value = models.DecimalField(max_digits=12, decimal_places=0, validators=[MinValueValidator(1)])
+    is_active = models.BooleanField(default=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    minimum_subtotal = models.DecimalField(
+        max_digits=12, decimal_places=0, default=0, validators=[MinValueValidator(0)]
+    )
+    maximum_discount = models.DecimalField(
+        max_digits=12, decimal_places=0, null=True, blank=True, validators=[MinValueValidator(0)]
+    )
+    total_limit = models.PositiveIntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
+    per_user_limit = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(value__gt=0), name="coupon_positive_value"),
+            models.CheckConstraint(
+                condition=models.Q(kind="fixed") | models.Q(kind="percent", value__lte=100),
+                name="coupon_valid_kind_value",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(minimum_subtotal__gte=0), name="coupon_min_nonnegative"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(maximum_discount__isnull=True) | models.Q(maximum_discount__gte=0),
+                name="coupon_max_nonnegative",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(total_limit__isnull=True) | models.Q(total_limit__gte=1),
+                name="coupon_total_positive",
+            ),
+            models.CheckConstraint(condition=models.Q(per_user_limit__gte=1), name="coupon_user_positive"),
+            models.CheckConstraint(
+                condition=models.Q(starts_at__isnull=True)
+                | models.Q(ends_at__isnull=True)
+                | models.Q(ends_at__gt=models.F("starts_at")),
+                name="coupon_valid_dates",
+            ),
+        ]
+
+    def __str__(self):
+        return self.code
+
+    def save(self, *args, **kwargs):
+        self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        self.code = self.code.strip().upper()
+        if not self.code or not all(c.isascii() and (c.isalnum() or c in "-_") for c in self.code):
+            raise ValidationError({"code": "فقط حروف لاتین، عدد، خط تیره و زیرخط مجاز است."})
+        super().clean()
+
+
+class CouponUse(models.Model):
+    RESERVED = "reserved"
+    USED = "used"
+    RELEASED = "released"
+    coupon = models.ForeignKey(Coupon, on_delete=models.PROTECT, related_name="uses")
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="coupon_use")
+    state = models.CharField(max_length=10, choices=[(RESERVED, "رزرو"), (USED, "مصرف"), (RELEASED, "آزاد")])
+    over_capacity = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["coupon", "state"])]
+
+    def __str__(self):
+        return f"{self.coupon_id}/{self.order_id}: {self.state}"

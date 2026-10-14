@@ -133,7 +133,12 @@ class OrderCreateAPIView(APIView):
         )
 
         try:
-            order = create_order_from_cart(cart, selected_address, request.user)
+            order = create_order_from_cart(
+                cart,
+                selected_address,
+                request.user,
+                coupon_code=serializer.validated_data.get("coupon_code", ""),
+            )
         except OrderCreationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 

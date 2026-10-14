@@ -24,6 +24,7 @@ from django.utils import timezone
 from account.models import ShopUser
 from shop.models import Product, ProductVariant
 
+from .coupons import CouponError, consume_coupon, release_coupon, reserve_coupon
 from .models import Order, OrderItem
 from .policies import may_cancel_order
 
@@ -120,7 +121,7 @@ def build_shipping_snapshot(address, user):
     }
 
 
-def create_order_from_cart(cart, address, user):
+def create_order_from_cart(cart, address, user, coupon_code=""):
     """
     Create a PENDING order from the session cart and reserve its stock.
 
@@ -210,6 +211,11 @@ def create_order_from_cart(cart, address, user):
                 )
             )
         OrderItem.objects.bulk_create(items)
+        if coupon_code:
+            try:
+                reserve_coupon(order, coupon_code)
+            except CouponError as exc:
+                raise OrderCreationError(str(exc)) from exc
         order.total_price = order.calculate_total()
         order.save(update_fields=["total_price"])
 
@@ -233,6 +239,7 @@ def cancel_order(order, reason=""):
         if order.stock_reserved:
             _release(_order_lines(order))
             order.stock_reserved = False
+        release_coupon(order)
         order.transition_to(Order.STATUS_CANCELED)
         order.save(update_fields=["status", "stock_reserved", "updated"])
     logger.info("Order %s canceled (%s)", order.order_number, reason or "-")
@@ -248,6 +255,7 @@ def expire_order_if_needed(order):
         if order.stock_reserved:
             _release(_order_lines(order))
             order.stock_reserved = False
+        release_coupon(order)
         order.transition_to(Order.STATUS_EXPIRED)
         order.save(update_fields=["status", "stock_reserved", "updated"])
     logger.info("Order %s expired, stock released", order.order_number)
@@ -277,6 +285,7 @@ def mark_order_paid(order, ref_id):
 
     if order.status in POST_PAYMENT_STATUSES:
         # Legacy rows: status was moved forward manually without is_paid. Just record it.
+        consume_coupon(order)
         order.is_paid = True
         order.paid_at = timezone.now()
         order.ref_id = ref_id
@@ -296,7 +305,8 @@ def mark_order_paid(order, ref_id):
                 exc.product_name,
             )
 
-    target = Order.STATUS_PAID if order.stock_reserved else Order.STATUS_NEEDS_REVIEW
+    coupon_ok = consume_coupon(order)
+    target = Order.STATUS_PAID if order.stock_reserved and coupon_ok else Order.STATUS_NEEDS_REVIEW
     order.transition_to(target)
     order.is_paid = True
     order.paid_at = timezone.now()

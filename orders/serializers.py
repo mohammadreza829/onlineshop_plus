@@ -61,6 +61,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "postal_code",
             "post_price",
             "total_price",
+            "coupon_code",
+            "coupon_discount",
             "status",
             "status_display",
             "is_paid",
@@ -76,6 +78,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 class OrderCreateSerializer(serializers.Serializer):
     """ورودی ثبت سفارش جدید توسط کاربر"""
 
+    coupon_code = serializers.RegexField(r"^[a-zA-Z0-9_-]{1,40}$", required=False)
     address_id = serializers.IntegerField()
 
     def validate_address_id(self, value):
