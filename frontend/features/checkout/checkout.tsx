@@ -33,7 +33,7 @@ export function CheckoutView() {
     lock.current = true;
     setBusy(true);
     setError(undefined);
-    const marker = { startedAt: Date.now() };
+    const marker = { startedAt: Date.now(), checkoutKey: crypto.randomUUID() };
     if (!storeSession(pendingCheckoutKey, marker)) {
       setError(
         new Error(
@@ -49,6 +49,7 @@ export function CheckoutView() {
         method: "POST",
         body: {
           address_id: selected,
+          checkout_key: marker.checkoutKey,
           ...(coupon.trim() ? { coupon_code: coupon.trim() } : {}),
         },
       });

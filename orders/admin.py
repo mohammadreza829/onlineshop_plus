@@ -1,9 +1,11 @@
+from django import forms
 from django.contrib import admin, messages
+from django.contrib.admin.helpers import ActionForm
 from django.db.models import Count
 from django.utils.html import format_html
 
 from .models import Coupon, CouponUse, Order, OrderItem
-from .services import OrderActionError, advance_order, retry_reservation
+from .services import OrderActionError, advance_order, resolve_coupon_review, retry_reservation
 
 # ==========================================
 # Order Item Inline
@@ -39,8 +41,14 @@ class OrderItemInline(admin.TabularInline):
 # ==========================================
 
 
+class ReviewActionForm(ActionForm):
+    review_decision = forms.CharField(label="دلیل پذیرش سهمیه کوپن", required=False, max_length=255)
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
+    action_form = ReviewActionForm
+
     list_display = (
         "id",
         "colored_status",
@@ -76,6 +84,14 @@ class OrderAdmin(admin.ModelAdmin):
     # Status / payment fields are read-only: they may only change through the
     # actions below, which go through the state machine and keep stock consistent.
     readonly_fields = (
+        "user",
+        "first_name",
+        "last_name",
+        "phone",
+        "address",
+        "postal_code",
+        "review_reason",
+        "review_resolution",
         "total_price",
         "post_price",
         "carrier",
@@ -95,6 +111,7 @@ class OrderAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
+        ("بررسی سفارش", {"fields": ("review_reason", "review_resolution")}),
         ("کوپن و ارسال", {"fields": ("coupon_code", "coupon_discount", "carrier", "tracking_code")}),
         (
             "اطلاعات مشتری",
@@ -154,7 +171,14 @@ class OrderAdmin(admin.ModelAdmin):
         "mark_delivered",
         "mark_canceled",
         "retry_stock_reservation",
+        "accept_coupon_review",
     )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -191,7 +215,7 @@ class OrderAdmin(admin.ModelAdmin):
         done, failed = 0, []
         for order in queryset:
             try:
-                func(order, *args)
+                func(order, *args, actor=request.user)
                 done += 1
             except OrderActionError as exc:
                 failed.append(f"{order.order_number}: {exc}")
@@ -200,25 +224,41 @@ class OrderAdmin(admin.ModelAdmin):
         for line in failed:
             self.message_user(request, line, messages.ERROR)
 
-    @admin.action(description="تغییر وضعیت به در حال آماده‌سازی")
+    @admin.action(permissions=["change"], description="تغییر وضعیت به در حال آماده‌سازی")
     def mark_preparing(self, request, queryset):
         self._apply(request, queryset, advance_order, Order.STATUS_PREPARING)
 
-    @admin.action(description="تغییر وضعیت به ارسال شده")
+    @admin.action(permissions=["change"], description="تغییر وضعیت به ارسال شده")
     def mark_sent(self, request, queryset):
         self._apply(request, queryset, advance_order, Order.STATUS_SENT)
 
-    @admin.action(description="تغییر وضعیت به تحویل داده شده")
+    @admin.action(permissions=["change"], description="تغییر وضعیت به تحویل داده شده")
     def mark_delivered(self, request, queryset):
         self._apply(request, queryset, advance_order, Order.STATUS_DELIVERED)
 
-    @admin.action(description="لغو سفارش (و آزادسازی موجودی)")
+    @admin.action(permissions=["change"], description="لغو سفارش (و آزادسازی موجودی)")
     def mark_canceled(self, request, queryset):
         self._apply(request, queryset, advance_order, Order.STATUS_CANCELED)
 
-    @admin.action(description="تلاش مجدد برای رزرو موجودی (سفارش‌های نیازمند بررسی)")
+    @admin.action(permissions=["change"], description="تلاش مجدد برای رزرو موجودی (سفارش‌های نیازمند بررسی)")
     def retry_stock_reservation(self, request, queryset):
         self._apply(request, queryset, retry_reservation)
+
+    def has_resolve_permission(self, request):
+        return request.user.has_perm("orders.resolve_order_review")
+
+    @admin.action(permissions=["resolve"], description="ثبت تصمیم مالی: پذیرش تخفیف کوپن خارج سهمیه")
+    def accept_coupon_review(self, request, queryset):
+        reason = request.POST.get("review_decision", "").strip()
+        if not reason:
+            self.message_user(request, "دلیل تصمیم کوپن را وارد کنید.", messages.ERROR)
+            return
+        for order in queryset:
+            try:
+                resolve_coupon_review(order, actor=request.user, reason=reason)
+                self.message_user(request, f"تصمیم سفارش {order.order_number} ثبت شد.", messages.SUCCESS)
+            except OrderActionError as exc:
+                self.message_user(request, str(exc), messages.ERROR)
 
 
 @admin.register(Coupon)

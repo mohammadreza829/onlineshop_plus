@@ -43,8 +43,24 @@ export function internalRedirect(value: string | null | undefined) {
     return "/account";
   }
 }
-export function gatewayURL(value: string, hosts: string[]) {
+export function gatewayURL(
+  value: string,
+  hosts: string[],
+  demoOrigin?: string,
+) {
   const u = new URL(value);
+  if (
+    demoOrigin &&
+    u.origin === demoOrigin &&
+    ["127.0.0.1", "localhost"].includes(u.hostname) &&
+    u.protocol === "http:" &&
+    !u.username &&
+    !u.password &&
+    !u.search &&
+    !u.hash &&
+    /^\/payment\/demo\/DEMO-[a-f0-9]{32}\/$/.test(u.pathname)
+  )
+    return u.href;
   if (
     u.protocol !== "https:" ||
     u.username ||

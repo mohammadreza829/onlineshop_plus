@@ -7,12 +7,14 @@
     <h2>🎉 پرداخت با موفقیت انجام شد</h2>
     <p>کد پیگیری تراکنش (RefID): <strong>{{ ref_id }}</strong></p>
     {% if order %}
+        {% if payment.needs_refund %}<p>این تراکنش نیازمند پیگیری بازپرداخت است؛ پرداخت تازه انجام ندهید.</p>{% endif %}
+        {% if payment.needs_reconciliation %}<p>پرداخت ثبت شده؛ تکمیل سفارش در انتظار بازیابی است.</p>{% endif %}
         <p>شماره سفارش: <strong>{{ order.order_number }}</strong></p>
         <p>مبلغ پرداخت‌شده: <strong>{{ order.total_price }} تومان</strong></p>
         {% if needs_review %}
             <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px;">
-                پرداخت شما ثبت شد اما موجودی یکی از کالاها در این فاصله تمام شده است.
-                همکاران ما برای تامین کالا یا بازگشت وجه با شما تماس می‌گیرند.
+                پرداخت ثبت شد، اما تامین کالا یا سهمیه تخفیف سفارش نیازمند بررسی است.
+                وضعیت را از حساب کاربری پیگیری کنید.
             </p>
         {% endif %}
     {% endif %}

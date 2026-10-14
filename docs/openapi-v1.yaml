@@ -2,17 +2,18 @@ openapi: 3.0.3
 info:
   title: Online Shop API
   version: 1.0.0
-  description: Versioned catalog, OTP/JWT, addresses, session cart, orders and payment
-    initiation. All prices are Toman.
+  description: Versioned catalog, OTP/JWT, addresses, session cart, orders and payment initiation. All prices are
+    Toman.
 paths:
   /api/schema/:
     get:
       operationId: api_schema_retrieve
-      description: |-
-        OpenApi3 schema for this API. Format can be selected via content negotiation.
+      description: 'OpenApi3 schema for this API. Format can be selected via content negotiation.
+
 
         - YAML: application/vnd.oai.openapi
-        - JSON: application/vnd.oai.openapi+json
+
+        - JSON: application/vnd.oai.openapi+json'
       parameters:
       - in: query
         name: format
@@ -352,9 +353,9 @@ paths:
   /api/v1/auth/token/refresh/:
     post:
       operationId: api_v1_auth_token_refresh_create
-      description: |-
-        Takes a refresh type JSON web token and returns an access type JSON web
-        token if the refresh token is valid.
+      description: 'Takes a refresh type JSON web token and returns an access type JSON web
+
+        token if the refresh token is valid.'
       tags:
       - Authentication
       requestBody:
@@ -442,9 +443,9 @@ paths:
   /api/v1/cart/items/{product_id}/:
     patch:
       operationId: api_v1_cart_items_partial_update
-      description: |-
-        مدیریت سبد خرید (دریافت لیست، افزودن محصول، حذف محصول).
-        سبد خرید در session نگه‌داری می‌شود، پس برای مهمان هم در دسترس است.
+      description: 'مدیریت سبد خرید (دریافت لیست، افزودن محصول، حذف محصول).
+
+        سبد خرید در session نگه‌داری می‌شود، پس برای مهمان هم در دسترس است.'
       parameters:
       - in: path
         name: product_id
@@ -713,9 +714,9 @@ paths:
   /api/v1/orders/:
     get:
       operationId: api_v1_orders_list
-      description: |-
-        مشاهده لیست سفارش‌های کاربر جاری با امکان فیلتر بر اساس status
-        مثال: /orders/api/v1/orders/?status=paid
+      description: 'مشاهده لیست سفارش‌های کاربر جاری با امکان فیلتر بر اساس status
+
+        مثال: /orders/api/v1/orders/?status=paid'
       parameters:
       - name: limit
         required: false
@@ -743,15 +744,21 @@ paths:
           - needs_review
           type: string
           minLength: 1
-        description: |-
-          * `pending` - در انتظار پرداخت
+        description: '* `pending` - در انتظار پرداخت
+
           * `paid` - پرداخت شده
+
           * `preparing` - در حال آماده‌سازی
+
           * `sent` - ارسال شده
+
           * `delivered` - تحویل داده شده
+
           * `canceled` - لغو شده
+
           * `expired` - منقضی شده
-          * `needs_review` - نیازمند بررسی
+
+          * `needs_review` - نیازمند بررسی'
       tags:
       - Orders
       security:
@@ -938,14 +945,19 @@ paths:
           type: string
           default: -created
           minLength: 1
-        description: |-
-          * `price` - price
+        description: '* `price` - price
+
           * `-price` - -price
+
           * `created` - created
+
           * `-created` - -created
+
           * `name` - name
+
           * `-name` - -name
-          * `relevance` - relevance
+
+          * `relevance` - relevance'
       - in: query
         name: search
         schema:
@@ -960,9 +972,9 @@ paths:
           - out
           type: string
           minLength: 1
-        description: |-
-          * `available` - available
-          * `out` - out
+        description: '* `available` - available
+
+          * `out` - out'
       tags:
       - Catalog
       security:
@@ -1616,11 +1628,13 @@ components:
       - tracking
       - payment
       type: string
-      description: |-
-        * `created` - ایجاد
+      description: '* `created` - ایجاد
+
         * `status` - وضعیت
+
         * `tracking` - اطلاعات ارسال
-        * `payment` - تایید پرداخت
+
+        * `payment` - تایید پرداخت'
     Message:
       type: object
       properties:
@@ -1665,10 +1679,11 @@ components:
       - approved
       - rejected
       type: string
-      description: |-
-        * `pending` - در انتظار بررسی
+      description: '* `pending` - در انتظار بررسی
+
         * `approved` - تایید
-        * `rejected` - رد
+
+        * `rejected` - رد'
     Notification:
       type: object
       properties:
@@ -1723,6 +1738,9 @@ components:
           pattern: ^[a-zA-Z0-9_-]{1,40}$
         address_id:
           type: integer
+        checkout_key:
+          type: string
+          format: uuid
       required:
       - address_id
     OrderDetail:
@@ -1812,6 +1830,13 @@ components:
           type: string
           format: date-time
           readOnly: true
+        review_reason:
+          type: string
+          readOnly: true
+        payment_summary:
+          allOf:
+          - $ref: '#/components/schemas/PaymentSummary'
+          readOnly: true
       required:
       - address
       - carrier
@@ -1825,19 +1850,20 @@ components:
       - items
       - last_name
       - order_number
+      - payment_summary
       - phone
       - post_price
       - postal_code
       - ref_id
       - reserved_until
+      - review_reason
       - status
       - status_display
       - total_price
       - tracking_code
     OrderItem:
       type: object
-      description: نمایش آیتم‌های درون یک سفارش (نام و قیمت از snapshot خود آیتم خوانده
-        می‌شود)
+      description: نمایش آیتم‌های درون یک سفارش (نام و قیمت از snapshot خود آیتم خوانده می‌شود)
       properties:
         id:
           type: integer
@@ -1905,15 +1931,21 @@ components:
       - expired
       - needs_review
       type: string
-      description: |-
-        * `pending` - در انتظار پرداخت
+      description: '* `pending` - در انتظار پرداخت
+
         * `paid` - پرداخت شده
+
         * `preparing` - در حال آماده‌سازی
+
         * `sent` - ارسال شده
+
         * `delivered` - تحویل داده شده
+
         * `canceled` - لغو شده
+
         * `expired` - منقضی شده
-        * `needs_review` - نیازمند بررسی
+
+        * `needs_review` - نیازمند بررسی'
     PaginatedAddressList:
       type: object
       required:
@@ -2329,12 +2361,15 @@ components:
       - khorasan_razavi
       - east_azerbaijan
       type: string
-      description: |-
-        * `fars` - فارس
+      description: '* `fars` - فارس
+
         * `tehran` - تهران
+
         * `isfahan` - اصفهان
+
         * `khorasan_razavi` - خراسان رضوی
-        * `east_azerbaijan` - آذربایجان شرقی
+
+        * `east_azerbaijan` - آذربایجان شرقی'
     ProvinceOption:
       type: object
       properties:
@@ -2410,11 +2445,13 @@ components:
       - delivered
       - canceled
       type: string
-      description: |-
-        * `preparing` - preparing
+      description: '* `preparing` - preparing
+
         * `sent` - sent
+
         * `delivered` - delivered
-        * `canceled` - canceled
+
+        * `canceled` - canceled'
     StatusCount:
       type: object
       properties:
@@ -2486,6 +2523,23 @@ components:
       - price
       - size
       - sku
+    PaymentSummary:
+      type: object
+      properties:
+        status:
+          type: string
+        needs_refund:
+          type: boolean
+        needs_reconciliation:
+          type: boolean
+        refund_status:
+          type: string
+          nullable: true
+      required:
+      - needs_reconciliation
+      - needs_refund
+      - refund_status
+      - status
   securitySchemes:
     cookieAuth:
       type: apiKey

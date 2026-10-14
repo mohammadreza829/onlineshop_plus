@@ -50,6 +50,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PaymentSummarySerializer(serializers.Serializer):
+    status = serializers.CharField()
+    needs_refund = serializers.BooleanField()
+    needs_reconciliation = serializers.BooleanField()
+    refund_status = serializers.CharField(allow_null=True)
+
+
 class OrderDetailSerializer(serializers.ModelSerializer):
     """نمایش کامل جزئیات سفارش ثبت‌شده"""
 
@@ -57,6 +64,35 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     is_payable = serializers.BooleanField(read_only=True)
+    payment_summary = serializers.SerializerMethodField()
+
+    from drf_spectacular.utils import extend_schema_field
+
+    @extend_schema_field(PaymentSummarySerializer)
+    def get_payment_summary(self, obj):
+        from payment.models import RefundRequest
+
+        if "payments" in getattr(obj, "_prefetched_objects_cache", {}):
+            payment = max(obj.payments.all(), key=lambda p: (p.created_at, p.pk), default=None)
+        else:
+            payment = obj.payments.select_related("refund").order_by("-created_at", "-pk").first()
+        if not payment:
+            return {
+                "status": "none",
+                "needs_refund": False,
+                "needs_reconciliation": False,
+                "refund_status": None,
+            }
+        try:
+            refund_status = payment.refund.status
+        except RefundRequest.DoesNotExist:
+            refund_status = None
+        return {
+            "status": payment.status,
+            "needs_refund": payment.needs_refund,
+            "needs_reconciliation": payment.needs_reconciliation,
+            "refund_status": refund_status,
+        }
 
     class Meta:
         model = Order
@@ -80,6 +116,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "ref_id",
             "reserved_until",
             "is_payable",
+            "payment_summary",
+            "review_reason",
             "items",
             "created",
         ]
@@ -89,6 +127,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 class OrderCreateSerializer(serializers.Serializer):
     """ورودی ثبت سفارش جدید توسط کاربر"""
 
+    checkout_key = serializers.UUIDField(required=False)
     coupon_code = serializers.RegexField(r"^[a-zA-Z0-9_-]{1,40}$", required=False)
     address_id = serializers.IntegerField()
 

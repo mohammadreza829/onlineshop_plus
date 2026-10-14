@@ -165,7 +165,7 @@ class CallbackTests(PaymentFlowTestBase):
         self.assertEqual(self.order.status, Order.STATUS_PAID)
         self.assertEqual(self.order.ref_id, "REF-1")
         self.assertEqual(self.stock(), 3)  # reserved at checkout, not deducted again
-        self.assertFalse(self.client.session.get("cart"))  # cart cleared
+        self.assertTrue(self.client.session.get("cart"))  # new selections must be retained
 
         self.callback(authority)  # refresh / double callback
         self.assertEqual(self.gateway.verify_calls, 1)
@@ -229,7 +229,11 @@ class CallbackTests(PaymentFlowTestBase):
         self.assertEqual(Payment.objects.get().status, Payment.STATUS_SUCCESS)
 
     def test_double_payment_is_flagged_for_refund(self):
-        first, second = self.start(), self.start()
+        first = self.start()
+        second = "LEGACY-SECOND"
+        Payment.objects.create(
+            order=self.order, user=self.user, amount=self.order.total_price, authority=second
+        )
         process_callback(first)
         self.gateway.ref_id = "REF-2"
         process_callback(second)

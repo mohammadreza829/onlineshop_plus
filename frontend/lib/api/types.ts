@@ -122,6 +122,13 @@ export type Order = {
   ref_id: string;
   reserved_until: string | null;
   is_payable: boolean;
+  review_reason?: string;
+  payment_summary?: {
+    status: string;
+    needs_refund: boolean;
+    needs_reconciliation: boolean;
+    refund_status: string | null;
+  } | null;
   items: OrderItem[];
   created: string;
 };

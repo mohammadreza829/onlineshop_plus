@@ -17,6 +17,8 @@ from orders.serializers import OrderDetailSerializer
 from orders.services import OrderActionError, advance_order, update_shipping
 from payment.models import Payment
 
+from .operation_permissions import CanManageOrders, CanViewSales
+
 
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
@@ -90,7 +92,7 @@ class StaffOrderInput(serializers.Serializer):
 
 
 class StaffOrderView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [CanManageOrders]
     throttle_scope = "shop_write"
 
     @extend_schema(request=StaffOrderInput, responses=OrderDetailSerializer, tags=["Staff"])
@@ -102,7 +104,7 @@ class StaffOrderView(APIView):
             with transaction.atomic():
                 order = get_object_or_404(Order.objects.select_for_update(), pk=pk)
                 if values.get("status"):
-                    order = advance_order(order, values["status"])
+                    order = advance_order(order, values["status"], actor=request.user)
                 if "carrier" in values:
                     order = update_shipping(
                         order, carrier=values["carrier"], tracking_code=values["tracking_code"]
@@ -150,7 +152,7 @@ class DashboardSerializer(serializers.Serializer):
 
 
 class SalesDashboardView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [CanViewSales]
 
     @extend_schema(parameters=[DashboardFilter], responses=DashboardSerializer, tags=["Staff"])
     def get(self, request):

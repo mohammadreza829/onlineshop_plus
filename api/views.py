@@ -1,18 +1,17 @@
+from addresses.services import save_address
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from shop.selectors import catalog_detail, catalog_products, categories
 
 from addresses.selectors import addresses_for_user
-from addresses.services import save_address
 from orders.selectors import orders_for_user
 from orders.serializers import OrderDetailSerializer
 from orders.services import OrderActionError, cancel_order_by_customer
-from payment.services import PaymentError, start_payment
-from shop.selectors import catalog_detail, catalog_products, categories
+from payment.services import PaymentError, callback_url_for_request, start_payment
 
 from .permissions import IsOwner
 from .serializers import (
@@ -127,7 +126,7 @@ class OrderPaymentView(APIView):
     def post(self, request, pk):
         order = get_object_or_404(orders_for_user(request.user), pk=pk)
         try:
-            url = start_payment(order, request.user, request.build_absolute_uri(reverse("payment:verify")))
+            url = start_payment(order, request.user, callback_url_for_request(request))
         except PaymentError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response({"payment_url": url}, status=status.HTTP_200_OK)

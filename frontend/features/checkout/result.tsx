@@ -21,12 +21,20 @@ export function PaymentResult() {
     setBusy(true);
     setError(undefined);
     try {
-      const data = await api<{ payment_url: string }>(
+      const data = await api<{ payment_url: string; demo?: boolean }>(
         "orders/" + id + "/payment/",
         { method: "POST" },
       );
       const u = new URL(data.payment_url);
-      if (u.protocol !== "https:") throw new Error("نشانی درگاه معتبر نیست.");
+      if (
+        u.protocol !== "https:" &&
+        !(
+          data.demo === true &&
+          u.protocol === "http:" &&
+          ["127.0.0.1", "localhost"].includes(u.hostname)
+        )
+      )
+        throw new Error("نشانی درگاه معتبر نیست.");
       window.location.assign(u.href);
     } catch (e) {
       setError(e);
@@ -69,6 +77,22 @@ export function PaymentResult() {
       </p>
       <p>وضعیت سفارش: {statusLabels[o.status] ?? o.status_display}</p>
       <strong>مبلغ نهایی: {toman(o.total_price)}</strong>
+      {o.payment_summary?.needs_reconciliation && (
+        <p className="notice">
+          پرداخت ثبت شده؛ تکمیل سفارش در انتظار بازیابی است.
+        </p>
+      )}
+      {o.payment_summary?.needs_refund && (
+        <p className="notice">این پرداخت نیازمند پیگیری بازپرداخت است.</p>
+      )}
+      {o.payment_summary?.refund_status === "confirmed" && (
+        <p className="notice">سند بازپرداخت انجام‌شده ثبت شده است.</p>
+      )}
+      {o.payment_summary?.status === "unknown" && (
+        <p className="notice">
+          نتیجه مالی نامشخص است؛ پرداخت تازه انجام ندهید.
+        </p>
+      )}
       {o.coupon_code && <p>تخفیف کوپن: {toman(o.coupon_discount)}</p>}
       {!o.is_paid && o.status === "pending" && (
         <p className="notice">
@@ -96,9 +120,8 @@ export function PaymentResult() {
             {busy ? "در حال شروع پرداخت…" : "دریافت نشانی درگاه و پرداخت"}
           </button>
           <p className="small subtle">
-            بازگشت درگاه فعلاً به صفحهٔ Django است. برای نتیجهٔ تاییدشده، از بخش
-            سفارش‌های این فروشگاه دوباره همین سفارش را بررسی کنید. بازگشت خودکار
-            به این صفحه هنوز متصل نیست.
+            در حالت دموی محلی هیچ پولی برداشت نمی‌شود. پس از نتیجهٔ درگاه
+            آزمایشی، به همین صفحه برمی‌گردید؛ وضعیت فقط از سرور خوانده می‌شود.
           </p>
         </>
       )}
