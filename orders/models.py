@@ -53,7 +53,7 @@ class Order(models.Model):
     }
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="orders", on_delete=models.CASCADE, null=True, blank=True
+        settings.AUTH_USER_MODEL, related_name="orders", on_delete=models.PROTECT, null=True, blank=True
     )
     # اضافه کردن فیلد زیر:
     address_obj = models.ForeignKey(
@@ -78,6 +78,10 @@ class Order(models.Model):
 
     total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="مبلغ کل")
 
+    checkout_key = models.UUIDField(null=True, blank=True, editable=False)
+    checkout_fingerprint = models.CharField(max_length=64, blank=True, editable=False)
+    review_reason = models.CharField(max_length=40, blank=True, editable=False)
+    review_resolution = models.CharField(max_length=255, blank=True, editable=False)
     event_sequence = models.PositiveIntegerField(default=0, editable=False)
     carrier = models.CharField(max_length=80, blank=True)
     tracking_code = models.CharField(max_length=100, blank=True)
@@ -105,6 +109,14 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created"]
+        permissions = [
+            ("view_sales", "Can view financial sales dashboard"),
+            ("cancel_paid_order", "Can cancel a paid order"),
+            ("resolve_order_review", "Can resolve fulfillment/coupon review"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "checkout_key"], name="unique_customer_checkout_key")
+        ]
         indexes = [
             models.Index(fields=["is_paid", "paid_at"], name="order_paid_at_idx"),
             models.Index(fields=["status"]),

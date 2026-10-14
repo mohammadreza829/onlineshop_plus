@@ -1,19 +1,17 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from cart.cart import Cart
 from orders.models import Order
 
 from .models import Payment
-from .services import PaymentError, process_callback, start_payment
+from .services import PaymentError, callback_url_for_request, process_callback, start_payment
 
 
 def redirect_to_gateway(request, order):
     """Shared by checkout and the "pay again" button. Returns an HttpResponse."""
-    callback_url = request.build_absolute_uri(reverse("payment:verify"))
+    callback_url = callback_url_for_request(request)
     try:
         payment_url = start_payment(order, request.user, callback_url)
     except PaymentError as exc:
@@ -48,12 +46,19 @@ def payment_verify(request):
     except Payment.DoesNotExist:
         return render(request, "payment/payment_failed.html", {"error": "تراکنش یافت نشد."}, status=404)
 
-    is_owner = request.user.is_authenticated and outcome.payment.user_id == request.user.id
+    is_owner = (
+        request.user.is_authenticated
+        and outcome.payment.user_id == request.user.id
+        and outcome.order.user_id == request.user.id
+    )
+    from django.conf import settings
+
+    storefront = getattr(settings, "STOREFRONT_ORIGIN", "")
+    if storefront:
+        return redirect(f"{storefront}/payment/result?order={outcome.order.pk}")
     context = {"order": outcome.order if is_owner else None, "payment": outcome.payment}
 
     if outcome.succeeded:
-        if is_owner:
-            Cart(request).clear()
         context["ref_id"] = outcome.payment.ref_id
         context["needs_review"] = outcome.order.status == Order.STATUS_NEEDS_REVIEW
         return render(request, "payment/payment_success.html", context)

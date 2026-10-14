@@ -129,11 +129,7 @@ class Cart:
                 qty = item["quantity"]
                 if not isinstance(qty, int) or isinstance(qty, bool) or qty <= 0:
                     raise ValueError
-                valid = product.is_active and (
-                    variant.is_active and variant.inventory > 0
-                    if variant
-                    else not variants and product.inventory > 0
-                )
+                valid = product.is_active and (variant.is_active if variant else not variants)
                 if not valid:
                     raise ValueError
                 if variant:
@@ -144,15 +140,11 @@ class Cart:
 
     def clean(self):
         changed = False
-        for key, product, variant, qty in self._resolved():
+        for key, product, _variant, _qty in self._resolved():
             if product is None:
                 self._cart.pop(key, None)
                 changed = True
-            else:
-                stock = variant.inventory if variant else product.inventory
-                if qty > stock:
-                    self._cart[key]["quantity"] = stock
-                    changed = True
+            # Retain requested quantity; checkout validates availability without silent loss.
         if changed:
             self._save()
 
@@ -167,6 +159,8 @@ class Cart:
         return sum((item["total_price"] for item in self), Decimal("0"))
 
     def get_post_price(self):
+        if self.is_empty:
+            return Decimal("0")
         weight = sum(item["product"].weight * item["quantity"] for item in self)
         return POST_PRICE_LOW if weight <= 1000 else POST_PRICE_HIGH
 

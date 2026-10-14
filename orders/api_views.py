@@ -1,3 +1,10 @@
+from api.serializers import (
+    CartQuantityResponseSerializer,
+    CartSerializer,
+    CheckoutResponseSerializer,
+    MessageSerializer,
+    OrderFilterSerializer,
+)
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -7,13 +14,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addresses.selectors import addresses_for_user
-from api.serializers import (
-    CartQuantityResponseSerializer,
-    CartSerializer,
-    CheckoutResponseSerializer,
-    MessageSerializer,
-    OrderFilterSerializer,
-)
 from cart.cart import Cart
 from shop.models import Product, ProductVariant
 
@@ -145,6 +145,7 @@ class OrderCreateAPIView(APIView):
                 selected_address,
                 request.user,
                 coupon_code=serializer.validated_data.get("coupon_code", ""),
+                checkout_key=serializer.validated_data.get("checkout_key"),
             )
         except OrderCreationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

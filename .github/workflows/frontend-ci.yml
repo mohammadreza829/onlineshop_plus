@@ -1,0 +1,87 @@
+name: Frontend and purchase integration
+"on":
+  pull_request:
+  push:
+    branches: [main, "fix/**"]
+permissions:
+  contents: read
+concurrency:
+  group: storefront-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  storefront:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      APP_ORIGIN: http://127.0.0.1:3100
+      DJANGO_ORIGIN: http://127.0.0.1:8100
+      BFF_LOCAL_HTTP: "1"
+      BFF_REDIS_URL: redis://127.0.0.1:6379/4
+      REDIS_QA_URL: redis://127.0.0.1:6379/5
+      PAYMENT_HOSTS: gw.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r requirements.txt
+      - name: Generate ephemeral BFF secret
+        run: python -c "import secrets,os; open(os.environ['GITHUB_ENV'],'a').write('BFF_COOKIE_SECRET='+secrets.token_urlsafe(48)+'\n')"
+      - run: npm ci
+        working-directory: frontend
+      - name: Start isolated backend (no bank or SMS)
+        run: |
+          python frontend/tests/django_harness.py > /tmp/osp-django.log 2>&1 &
+          python - <<'PY'
+          import time, urllib.request
+          for _ in range(60):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:8100/__test__/health/', timeout=2)
+                  break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit('Django QA did not start; see log artifact')
+          PY
+      - run: npm run typecheck && npm run lint && npm test && npm run build
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Browser tests against isolated Django and Next
+        working-directory: frontend
+        run: |
+          npm run start -- --port 3100 > /tmp/osp-next.log 2>&1 &
+          python - <<'PY'
+          import time, urllib.request
+          for _ in range(60):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:3100/', timeout=3)
+                  break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit('Next QA did not start; see log artifact')
+          PY
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storefront-qa
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            /tmp/osp-django.log
+            /tmp/osp-next.log

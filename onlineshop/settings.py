@@ -368,3 +368,33 @@ if not DEBUG and len(SIMPLE_JWT["SIGNING_KEY"]) < 32:
     raise ImproperlyConfigured("JWT_SIGNING_KEY must contain at least 32 characters.")
 
 SECURE_REDIRECT_EXEMPT = [r"^health/(live|ready)/$"]
+
+
+# Explicit fixed origins prevent internal BFF Host from becoming a public callback.
+# Demo behavior is ONLY enabled by onlineshop.demo_settings, never by an env toggle here.
+LOCAL_DEMO = False
+
+
+def configured_origin(name):
+    from urllib.parse import urlsplit
+
+    value = env(name)
+    if not value:
+        return ""
+    parsed = urlsplit(value)
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.netloc
+        or parsed.username
+        or parsed.password
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+        or (not DEBUG and parsed.scheme != "https")
+    ):
+        raise ImproperlyConfigured(f"{name} must be a fixed HTTP(S) origin, HTTPS in production.")
+    return value.rstrip("/")
+
+
+PAYMENT_PUBLIC_ORIGIN = configured_origin("PAYMENT_PUBLIC_ORIGIN")
+STOREFRONT_ORIGIN = configured_origin("STOREFRONT_ORIGIN")

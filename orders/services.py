@@ -13,9 +13,12 @@ so two concurrent checkouts can never oversell the last item: the second UPDATE
 matches 0 rows. Rows are always touched in primary-key order to avoid deadlocks.
 """
 
+import hashlib
+import json
 import logging
 from datetime import timedelta
 from decimal import Decimal
+from uuid import UUID
 
 from django.conf import settings
 from django.db import transaction
@@ -94,6 +97,8 @@ def _release(lines):
 
 
 def _order_lines(order):
+    if order.items.filter(product_id__isnull=True).exists():
+        raise InsufficientStock("کالای حذف‌شده از کاتالوگ")
     return [
         (i.product_id, i.quantity, i.product_name, i.variant_id)
         for i in order.items.all()
@@ -123,7 +128,7 @@ def build_shipping_snapshot(address, user):
     }
 
 
-def create_order_from_cart(cart, address, user, coupon_code=""):
+def create_order_from_cart(cart, address, user, coupon_code="", checkout_key=None):
     """
     Create a PENDING order from the session cart and reserve its stock.
 
@@ -134,32 +139,50 @@ def create_order_from_cart(cart, address, user, coupon_code=""):
     """
     if address.user_id != user.pk:
         raise OrderCreationError("آدرس متعلق به این کاربر نیست.")
-    cart.clean()
-    if cart.is_empty:
-        raise OrderCreationError("سبد خرید خالی است.")
-
-    validation = cart.validate()
-    if not validation["valid"]:
-        raise OrderCreationError("\n".join(validation["errors"]))
-
-    quantities = {
-        (item["product"].id, item["variant"].id if item.get("variant") else None): item["quantity"]
-        for item in cart
-    }
-    if not quantities:
-        raise OrderCreationError("سبد خرید خالی است.")
-    post_price = cart.get_post_price()
+    if checkout_key:
+        try:
+            checkout_key = UUID(str(checkout_key))
+        except ValueError as exc:
+            raise OrderCreationError("شناسه ثبت سفارش نامعتبر است.") from exc
+    raw_cart = getattr(cart, "_cart", None)
+    if raw_cart is None:
+        raw_cart = [
+            (i["product"].pk, i.get("variant").pk if i.get("variant") else None, i["quantity"]) for i in cart
+        ]
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            [raw_cart, address.pk, coupon_code.strip().upper()],
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
     snapshot = build_shipping_snapshot(address, user)
-
     with transaction.atomic():
-        # One pending checkout per customer, even when two requests arrive together.
         ShopUser.objects.select_for_update().get(pk=user.pk)
+        if checkout_key:
+            existing = Order.objects.filter(user=user, checkout_key=str(checkout_key)).first()
+            if existing:
+                if existing.checkout_fingerprint != fingerprint:
+                    raise OrderCreationError("شناسه تکراری با محتوای متفاوت قابل استفاده نیست.")
+                return existing
+        # Release this customer's earlier reservation BEFORE reading available stock.
         for old_order in Order.objects.filter(user=user, status=Order.STATUS_PENDING, is_paid=False):
             old_order = _lock(old_order)
-            # A gateway callback may have paid it while we waited for its lock.
             if old_order.status == Order.STATUS_PENDING and not old_order.is_paid:
+                # Do not replace a checkout that already has an uncertain bank attempt.
+                if old_order.payments.filter(status__in=["pending", "unknown", "success"]).exists():
+                    raise OrderCreationError("ابتدا پرداخت سفارش قبلی را پیگیری یا سفارش را صریحاً لغو کنید.")
                 cancel_order(old_order, reason="replaced by a new checkout")
-
+        if hasattr(cart, "_entries_cache"):
+            cart._entries_cache = None
+        validation = cart.validate()
+        if not validation["valid"]:
+            raise OrderCreationError("\\n".join(validation["errors"]))
+        quantities = {
+            (i["product"].id, i["variant"].id if i.get("variant") else None): i["quantity"] for i in cart
+        }
+        if not quantities:
+            raise OrderCreationError("سبد خرید خالی است.")
+        post_price = cart.get_post_price()
         products = {
             p.pk: p
             for p in Product.objects.select_for_update()
@@ -186,6 +209,8 @@ def create_order_from_cart(cart, address, user, coupon_code=""):
         _reserve(lines)
         order = Order.objects.create(
             user=user,
+            checkout_key=str(checkout_key) if checkout_key else None,
+            checkout_fingerprint=fingerprint,
             address_obj=address,
             post_price=post_price,
             total_price=0,
@@ -235,18 +260,38 @@ def create_order_from_cart(cart, address, user, coupon_code=""):
 # ----------------------------------------------------------------------
 
 
-def cancel_order(order, reason=""):
+def cancel_order(order, reason="", actor=None):
     """Cancel an order and give its stock back. Idempotent for already-canceled orders."""
     with transaction.atomic():
         order = _lock(order)
+        if actor is not None and (
+            not actor.is_active
+            or not actor.has_perm("orders.change_order")
+            or (order.is_paid and not actor.has_perm("orders.cancel_paid_order"))
+        ):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
         if order.status == Order.STATUS_CANCELED:
             return order
         if not order.can_transition_to(Order.STATUS_CANCELED):
             raise OrderActionError("این سفارش قابل لغو نیست.")
         if order.stock_reserved:
-            _release(_order_lines(order))
+            _release(
+                [
+                    (i.product_id, i.quantity, i.product_name, i.variant_id)
+                    for i in order.items.all()
+                    if i.product_id is not None
+                ]
+            )
             order.stock_reserved = False
         release_coupon(order)
+        if order.is_paid:
+            from payment.models import Payment
+            from payment.refunds import request_refund
+
+            for payment in order.payments.filter(status=Payment.STATUS_SUCCESS):
+                request_refund(payment, actor=actor, reason=reason or "paid order canceled")
         transition(order, Order.STATUS_CANCELED)
         order.save(update_fields=["status", "stock_reserved", "updated"])
     logger.info("Order %s canceled (%s)", order.order_number, reason or "-")
@@ -260,7 +305,13 @@ def expire_order_if_needed(order):
         if order.status != Order.STATUS_PENDING or order.is_paid or not order.is_reservation_expired:
             return False
         if order.stock_reserved:
-            _release(_order_lines(order))
+            _release(
+                [
+                    (i.product_id, i.quantity, i.product_name, i.variant_id)
+                    for i in order.items.all()
+                    if i.product_id is not None
+                ]
+            )
             order.stock_reserved = False
         release_coupon(order)
         transition(order, Order.STATUS_EXPIRED)
@@ -314,19 +365,36 @@ def mark_order_paid(order, ref_id):
             )
 
     coupon_ok = consume_coupon(order)
+    order.review_reason = (
+        ""
+        if order.stock_reserved and coupon_ok
+        else (
+            "stock_and_coupon"
+            if not order.stock_reserved and not coupon_ok
+            else "missing_stock"
+            if not order.stock_reserved
+            else "coupon_capacity"
+        )
+    )
     target = Order.STATUS_PAID if order.stock_reserved and coupon_ok else Order.STATUS_NEEDS_REVIEW
     transition(order, target)
     order.is_paid = True
     order.paid_at = timezone.now()
     order.ref_id = ref_id
-    order.save(update_fields=["status", "is_paid", "paid_at", "ref_id", "stock_reserved", "updated"])
+    order.save(
+        update_fields=["status", "is_paid", "paid_at", "ref_id", "stock_reserved", "review_reason", "updated"]
+    )
     return order
 
 
-def retry_reservation(order):
+def retry_reservation(order, actor=None):
     """For NEEDS_REVIEW orders after restocking: try to take the stock again."""
     with transaction.atomic():
         order = _lock(order)
+        if actor is not None and not actor.has_perm("orders.change_order"):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
         if order.stock_reserved:
             return order
         if order.status not in (Order.STATUS_NEEDS_REVIEW, Order.STATUS_PAID):
@@ -338,17 +406,29 @@ def retry_reservation(order):
             raise OrderActionError(str(exc)) from exc
         order.stock_reserved = True
         if order.status == Order.STATUS_NEEDS_REVIEW:
-            transition(order, Order.STATUS_PREPARING)
-        order.save(update_fields=["status", "stock_reserved", "updated"])
+            from .models import CouponUse
+
+            if CouponUse.objects.filter(order=order, over_capacity=True).exists():
+                order.review_reason = "coupon_capacity"
+            else:
+                order.review_reason = ""
+                transition(order, Order.STATUS_PREPARING)
+        order.save(update_fields=["status", "stock_reserved", "review_reason", "updated"])
     return order
 
 
-def advance_order(order, new_status):
+def advance_order(order, new_status, actor=None):
     """Admin/back-office transitions (preparing, sent, delivered, canceled)."""
     if new_status == Order.STATUS_CANCELED:
-        return cancel_order(order, reason="admin")
+        return cancel_order(order, reason="admin", actor=actor)
     with transaction.atomic():
         order = _lock(order)
+        if actor is not None and not actor.has_perm("orders.change_order"):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
+        if order.status == Order.STATUS_NEEDS_REVIEW and order.review_reason == "coupon_capacity":
+            raise OrderActionError("ابتدا تصمیم مربوط به سهمیه کوپن را ثبت کنید.")
         if order.status == new_status:
             return order
         if not order.can_transition_to(new_status):
@@ -378,4 +458,26 @@ def update_shipping(order, *, carrier, tracking_code):
     order.carrier, order.tracking_code = carrier, tracking_code
     order.save(update_fields=["carrier", "tracking_code", "updated"])
     record_event(order, previous_status=order.status, kind="tracking")
+    return order
+
+
+@transaction.atomic
+def resolve_coupon_review(order, *, actor, reason):
+    """An explicit financial decision to honor the already-paid coupon discount."""
+    from django.core.exceptions import PermissionDenied
+
+    if not actor.is_active or not actor.has_perm("orders.resolve_order_review"):
+        raise PermissionDenied
+    reason = str(reason or "").strip()
+    if not reason or len(reason) > 255:
+        raise OrderActionError("دلیل تصمیم، حداکثر ۲۵۵ نویسه، لازم است.")
+    order = _lock(order)
+    if order.status != Order.STATUS_NEEDS_REVIEW or order.review_reason != "coupon_capacity":
+        raise OrderActionError("این سفارش در انتظار تصمیم سهمیه کوپن نیست.")
+    if not order.is_paid or not order.stock_reserved:
+        raise OrderActionError("پرداخت و موجودی باید ابتدا تامین شوند.")
+    order.review_resolution = f"operator:{actor.pk} {reason}"[:255]
+    order.review_reason = ""
+    transition(order, Order.STATUS_PREPARING)
+    order.save(update_fields=["review_reason", "review_resolution", "status", "updated"])
     return order

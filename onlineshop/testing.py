@@ -90,6 +90,9 @@ class FakeGateway:
             ok=True, authority=authority, payment_url=f"https://gw.test/StartPay/{authority}", code=100
         )
 
+    def payment_url(self, authority):
+        return f"https://gw.test/StartPay/{authority}"
+
     def verify(self, amount_toman, authority):
         self.verify_calls += 1
         if self.verify_status == VerifyStatus.SUCCESS:

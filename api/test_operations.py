@@ -22,7 +22,7 @@ class OperationsTests(TestCase):
     def setUp(self):
         self.user = make_user()
         self.other = make_user()
-        self.staff = make_user(is_staff=True)
+        self.staff = make_user(is_staff=True, is_superuser=True)
         self.product = make_product()
         self.order = create_order_from_cart(FakeCart([(self.product, 1)]), make_address(self.user), self.user)
         self.client = APIClient()
@@ -142,7 +142,7 @@ class OperationsTests(TestCase):
 
 class DashboardQueryBudgetTests(TestCase):
     def test_staff_dashboard_has_fixed_six_query_budget(self):
-        staff = make_user(is_staff=True)
+        staff = make_user(is_staff=True, is_superuser=True)
         client = APIClient()
         client.force_authenticate(staff)
         with self.assertNumQueries(6):

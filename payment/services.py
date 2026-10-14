@@ -1,23 +1,18 @@
-"""
-Payment flow.
+"""Durable settlement first, recoverable fulfillment second.
 
-start_payment()     -> creates a Payment row, asks the gateway for an authority.
-process_callback()  -> verifies a payment exactly once and updates the order.
-reconcile_payment() -> re-checks payments stuck in PENDING/UNKNOWN (cron).
-
-Idempotency: the Payment row is locked with SELECT ... FOR UPDATE for the whole
-verification, so two concurrent callbacks (double click, browser retry, our
-reconcile job) serialize; the second one sees SUCCESS/FAILED and returns the
-stored result without calling the gateway or touching stock again.
-The lock is held during one bounded HTTP call (timeout in settings.ZARINPAL);
-that trade-off is deliberate: correctness of money > a few seconds of waiting.
+Verification serializes on Payment. It never locks Order or emits notifications.
+After that transaction commits, fulfillment locks Order -> Payment. A notification
+failure cannot roll back the already committed external financial fact.
 """
 
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
+from django.urls import reverse
 from django.utils import timezone
 
 from orders.models import Order
@@ -33,9 +28,15 @@ class PaymentError(Exception):
     pass
 
 
+def callback_url_for_request(request):
+    path = reverse("payment:verify")
+    origin = getattr(settings, "PAYMENT_PUBLIC_ORIGIN", "")
+    return origin + path if origin else request.build_absolute_uri(path)
+
+
 @dataclass(frozen=True)
 class CallbackOutcome:
-    status: str  # one of Payment.STATUS_*
+    status: str
     payment: Payment
     order: Order
 
@@ -45,103 +46,132 @@ class CallbackOutcome:
 
 
 def start_payment(order, user, callback_url):
-    """Return the gateway URL the customer must be redirected to."""
     if order.user_id != user.pk:
         raise PaymentError("سفارش متعلق به این کاربر نیست.")
     expire_order_if_needed(order)
+    gateway = get_gateway()
     with transaction.atomic():
         order = Order.objects.select_for_update().get(pk=order.pk)
+        if order.user_id != user.pk:
+            raise PaymentError("سفارش متعلق به این کاربر نیست.")
         if order.is_paid:
             raise PaymentError("این سفارش قبلاً پرداخت شده است.")
         if not order.is_payable:
-            raise PaymentError("مهلت پرداخت این سفارش به پایان رسیده یا سفارش لغو شده است.")
-        payment = Payment.objects.create(order=order, user=user, amount=order.total_price)
+            raise PaymentError("مهلت پرداخت این سفارش تمام شده یا سفارش لغو شده است.")
+        active = (
+            order.payments.filter(status__in=[Payment.STATUS_PENDING, Payment.STATUS_UNKNOWN])
+            .order_by("pk")
+            .first()
+        )
+        if active:
+            if active.status == Payment.STATUS_UNKNOWN:
+                raise PaymentError("نتیجه پرداخت قبلی نامشخص است؛ ابتدا آن را پیگیری کنید.")
+            if not active.authority:
+                raise PaymentError("درخواست قبلی هنوز در حال پردازش است؛ پرداخت تازه آغاز نشد.")
+            return gateway.payment_url(active.authority)
+        payment = Payment.objects.create(
+            order=order,
+            user=user,
+            amount=order.total_price,
+            gateway=getattr(gateway, "name", Payment.GATEWAY_ZARINPAL),
+        )
 
-    # HTTP call outside the transaction: no row lock is held while the gateway answers.
-    result = get_gateway().request_payment(
+    result = gateway.request_payment(
         amount_toman=payment.amount,
         description=f"پرداخت سفارش {order.order_number}",
         callback_url=callback_url,
         mobile=getattr(user, "phone", ""),
     )
     if not result.ok:
-        payment.status = Payment.STATUS_FAILED
-        payment.gateway_code = result.code
-        payment.raw_response = result.raw
+        payment.status = Payment.STATUS_UNKNOWN if result.unknown else Payment.STATUS_FAILED
+        payment.gateway_code, payment.raw_response = result.code, result.raw
         payment.save(update_fields=["status", "gateway_code", "raw_response", "updated_at"])
-        raise PaymentError(result.error or "خطا در اتصال به درگاه پرداخت.")
-
+        raise PaymentError(result.error or "خطا در اتصال به درگاه.")
     payment.authority = result.authority
     payment.save(update_fields=["authority", "updated_at"])
     return result.payment_url
 
 
 def _verify_locked(payment):
-    """payment must be locked (select_for_update) by the caller's transaction."""
     if payment.status in (Payment.STATUS_SUCCESS, Payment.STATUS_FAILED):
         return payment.status
-
-    # Always ask the gateway: the `Status` query param of the callback is user
-    # controlled, the verify endpoint is the only source of truth.
     result = get_gateway().verify(amount_toman=payment.amount, authority=payment.authority)
-    payment.gateway_code = result.code
-    payment.raw_response = result.raw
-
+    payment.gateway_code, payment.raw_response = result.code, result.raw
     if result.status == VerifyStatus.SUCCESS:
-        payment.status = Payment.STATUS_SUCCESS
-        payment.ref_id = result.ref_id
-        payment.card_pan = result.card_pan
-        payment.verified_at = timezone.now()
-        order = Order.objects.select_for_update().get(pk=payment.order_id)
-        if order.is_paid and order.ref_id and order.ref_id != result.ref_id:
-            # Customer paid the same order twice (two tabs). Keep the money on record.
-            payment.needs_refund = True
-            logger.critical(
-                "Duplicate payment %s for already-paid order %s -> refund needed",
-                payment.pk,
-                order.order_number,
-            )
-        else:
-            mark_order_paid(order, result.ref_id)
+        payment.status, payment.ref_id = Payment.STATUS_SUCCESS, result.ref_id
+        payment.card_pan, payment.verified_at = result.card_pan, timezone.now()
+        payment.needs_reconciliation = True
     elif result.status == VerifyStatus.FAILED:
         payment.status = Payment.STATUS_FAILED
     else:
         payment.status = Payment.STATUS_UNKNOWN
-
     payment.save()
     return payment.status
 
 
+def fulfill_settled_payment(payment_id):
+    """Safe to retry; only succeeds after fulfillment/refund obligation is committed."""
+    try:
+        scope = Payment.objects.values("order_id").get(pk=payment_id)
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=scope["order_id"])
+            payment = Payment.objects.select_for_update().get(pk=payment_id)
+            if payment.status != Payment.STATUS_SUCCESS or not payment.needs_reconciliation:
+                return
+            if order.is_paid and order.ref_id != payment.ref_id:
+                from .refunds import request_refund
+
+                request_refund(payment, reason="duplicate payment")
+            else:
+                mark_order_paid(order, payment.ref_id)
+                # Paid cancellation remains terminal; replay never reopens fulfillment.
+                if order.status == Order.STATUS_CANCELED:
+                    from .refunds import request_refund
+
+                    request_refund(payment, reason="settlement on canceled paid order")
+            payment.needs_reconciliation = False
+            # request_refund may have updated needs_refund separately; do not overwrite it.
+            payment.save(update_fields=["needs_reconciliation", "updated_at"])
+    except Exception:
+        logger.exception("Settled payment %s still needs fulfillment reconciliation", payment_id)
+
+
 def process_callback(authority):
-    """Handle the browser coming back from the gateway. Raises Payment.DoesNotExist."""
     with transaction.atomic():
         payment = Payment.objects.select_for_update().get(authority=authority)
-        status = _verify_locked(payment)
+        _verify_locked(payment)
+    # The settlement transaction has exited before any optional order side effects.
+    fulfill_settled_payment(payment.pk)
     payment.refresh_from_db()
-    order = Order.objects.get(pk=payment.order_id)
-    return CallbackOutcome(status=status, payment=payment, order=order)
+    return CallbackOutcome(payment.status, payment, Order.objects.get(pk=payment.order_id))
 
 
 def reconcile_payment(payment_id):
     with transaction.atomic():
         payment = Payment.objects.select_for_update().get(pk=payment_id)
-        if not payment.authority:
-            return payment.status
-        return _verify_locked(payment)
+        if payment.authority:
+            _verify_locked(payment)
+    fulfill_settled_payment(payment_id)
+    payment.refresh_from_db()
+    return payment.status
 
 
 def reconcile_stale_payments(older_than_minutes=15):
-    """Verify payments whose callback never arrived (closed tab) or ended UNKNOWN."""
     cutoff = timezone.now() - timedelta(minutes=older_than_minutes)
-    ids = list(
+    ids = (
         Payment.objects.filter(
-            status__in=[Payment.STATUS_PENDING, Payment.STATUS_UNKNOWN],
-            authority__isnull=False,
-            created_at__lte=cutoff,
-        ).values_list("pk", flat=True)
+            Q(
+                status__in=[Payment.STATUS_PENDING, Payment.STATUS_UNKNOWN],
+                authority__isnull=False,
+                created_at__lte=cutoff,
+            )
+            | Q(status=Payment.STATUS_SUCCESS, needs_reconciliation=True)
+        )
+        .exclude(authority="")
+        .values_list("pk", flat=True)
     )
     results = {}
-    for payment_id in ids:
-        status = reconcile_payment(payment_id)
-        results[status] = results.get(status, 0) + 1
+    for pk in list(ids):
+        state = reconcile_payment(pk)
+        results[state] = results.get(state, 0) + 1
     return results

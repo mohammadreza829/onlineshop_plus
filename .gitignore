@@ -191,3 +191,6 @@ private_media/
 # Backups and benchmark runtime data are not source/image content.
 *.dump
 benchmark-artifacts/
+
+# Isolated local demo DB and generated secrets
+.local-demo/

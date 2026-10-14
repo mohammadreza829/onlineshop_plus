@@ -1,0 +1,22 @@
+
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پرداخت شبیه‌سازی‌شده — دمو</title>
+<style>
+body{font-family:Tahoma,sans-serif;background:#f6f4ee;color:#222;margin:0;padding:24px}
+main{max-width:560px;margin:8vh auto;background:white;padding:28px;border-radius:16px}
+button{padding:14px;margin:6px;border:1px solid #999;border-radius:8px;cursor:pointer}
+button:focus-visible{outline:3px solid #145bd7}
+</style>
+<main>
+<h1>درگاه آزمایشی محلی</h1>
+<p><strong>هیچ پولی برداشت نمی‌شود. این صفحه درگاه بانکی نیست.</strong></p>
+<p>مبلغ شبیه‌سازی‌شده: {{ payment.amount }} تومان</p>
+<form method="post">{% csrf_token %}
+<button name="outcome" value="success">شبیه‌سازی موفقیت</button>
+<button name="outcome" value="failed">شبیه‌سازی عدم پرداخت</button>
+<button name="outcome" value="unknown">شبیه‌سازی نتیجه نامشخص</button>
+</form>
+<p>در حالت نامشخص، همین صفحه را دوباره باز کنید و موفقیت را انتخاب کنید تا بازیابی همان تراکنش را ببینید.</p>
+</main></html>

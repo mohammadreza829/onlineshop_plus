@@ -24,6 +24,7 @@ export type BFFConfig = {
   imageHosts: string[];
   sessionName: string;
   csrfName: string;
+  localDemo?: boolean;
 };
 export function configuration(): BFFConfig {
   const origin = process.env.APP_ORIGIN,
@@ -51,7 +52,16 @@ export function configuration(): BFFConfig {
     throw new Error("Invalid application origin");
   if (process.env.NODE_ENV === "production" && !process.env.PAYMENT_HOSTS)
     throw new Error("Explicit payment hosts required");
+  const localDemo = process.env.LOCAL_DEMO === "1";
+  if (
+    localDemo &&
+    (process.env.NODE_ENV === "production" ||
+      !["127.0.0.1", "localhost"].includes(o.hostname) ||
+      !["127.0.0.1", "localhost"].includes(u.hostname))
+  )
+    throw new Error("Local demo must run in development on loopback origins");
   return {
+    localDemo,
     origin,
     upstream: u.origin,
     secret,
@@ -364,9 +374,15 @@ export async function handleBFF(
         "سرویس موقتاً در دسترس نیست. نتیجهٔ عملیات را بررسی کنید.",
       );
     if (r.ok && /orders\/[1-9]\d*\/payment\/$/.test(path)) {
-      const payment = data as { payment_url: string };
+      const payment = data as { payment_url: string; demo?: boolean };
       try {
-        payment.payment_url = gatewayURL(payment.payment_url, c.paymentHosts);
+        payment.payment_url = gatewayURL(
+          payment.payment_url,
+          c.paymentHosts,
+          c.localDemo ? c.upstream : undefined,
+        );
+        if (c.localDemo && new URL(payment.payment_url).origin === c.upstream)
+          payment.demo = true;
       } catch {
         return fail(502, "نشانی درگاه مورد تایید نیست.");
       }
