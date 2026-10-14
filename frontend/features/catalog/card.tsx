@@ -2,14 +2,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Shirt } from "lucide-react";
-import type { Product, ProductDetail } from "@/lib/api/types";
-import { useApi } from "@/lib/api/hooks";
+import type { Product } from "@/lib/api/types";
 import { toman } from "@/lib/format";
 export function ProductCard({ product: p }: { product: Product }) {
-  const d = useApi<ProductDetail>(
-    "products/" + encodeURIComponent(p.slug) + "/",
-  );
-  const image = d.data?.images.find((i) => i.is_primary) ?? d.data?.images[0];
   return (
     <article className="product-card">
       <Link
@@ -17,10 +12,10 @@ export function ProductCard({ product: p }: { product: Product }) {
         className="product-media"
         aria-label={"مشاهدهٔ " + p.name}
       >
-        {image?.image ? (
+        {p.image ? (
           <Image
-            src={image.image}
-            alt={image.description || p.name}
+            src={p.image}
+            alt={p.name}
             width={480}
             height={640}
             unoptimized

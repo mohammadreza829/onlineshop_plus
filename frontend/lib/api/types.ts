@@ -11,6 +11,7 @@ export type Category = {
   parent: number | null;
 };
 export type Product = {
+  image?: string | null;
   id: number;
   sku: string;
   name: string;

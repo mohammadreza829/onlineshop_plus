@@ -153,7 +153,21 @@ class ZarinpalGateway:
         return VerifyResult(status=VerifyStatus.UNKNOWN, code=code, raw=body)
 
 
+class DisabledLocalGateway:
+    """Local checkout may create orders, but never calls or approves a payment."""
+
+    def request_payment(self, amount_toman, description, callback_url, mobile=""):
+        return RequestResult(
+            ok=False, error="پرداخت آنلاین در حالت لپ‌تاپ غیرفعال است؛ هیچ وجهی دریافت نمی‌شود."
+        )
+
+    def verify(self, amount_toman, authority):
+        return VerifyResult(status=VerifyStatus.UNKNOWN, raw={"error": "local_payment_disabled"})
+
+
 def get_gateway():
+    if settings.DEBUG and getattr(settings, "LOCAL_PAYMENT_DISABLED", False):
+        return DisabledLocalGateway()
     conf = settings.ZARINPAL
     return ZarinpalGateway(
         merchant_id=conf["merchant_id"],

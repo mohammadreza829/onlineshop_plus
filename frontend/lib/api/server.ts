@@ -1,5 +1,6 @@
 import "server-only";
 import { configuration } from "@/lib/auth/bff";
+import { mapProductImages } from "./images";
 export async function publicAPI<T>(path: string): Promise<T | undefined> {
   if (!/^(products\/|categories\/)/.test(path))
     throw new Error("Public read only");
@@ -11,7 +12,7 @@ export async function publicAPI<T>(path: string): Promise<T | undefined> {
       signal: AbortSignal.timeout(5000),
     });
     if (!r.ok) return;
-    return (await r.json()) as T;
+    return mapProductImages(await r.json(), c.upstream, c.imageHosts) as T;
   } catch {
     return;
   }
