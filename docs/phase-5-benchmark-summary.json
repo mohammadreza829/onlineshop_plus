@@ -1,0 +1,142 @@
+{
+  "benchmark": {
+    "provenance": {
+      "raw": "/data/raw/p5-load-maintained.jsonl",
+      "metadata": "/data/raw/p5-load-maintained.meta.json",
+      "server_log": "/data/raw/p5-http-final.log",
+      "search_plan": "/data/raw/p5-search-plan-maintained.json",
+      "grain": "one measured HTTP request; equal-weight four public GET routes; warmup excluded",
+      "started_at": "2026-10-14T10:21:05.448901+00:00",
+      "finished_at": "2026-10-14T10:21:17.868305+00:00",
+      "rows": 1200,
+      "synthetic_dataset": {
+        "synthetic_only": true,
+        "products": 10000,
+        "variants": 5000,
+        "approved_reviews": 5000,
+        "categories": 100,
+        "anchor_slug": "benchmark-1",
+        "database": "shop_phase5_benchmark"
+      },
+      "target": "http://127.0.0.1:18001"
+    },
+    "comparison_plan": [
+      {
+        "question": "Observed local closed-loop read latency and contracts",
+        "population": "1200 GET requests, 8 virtual users, two gthread workers/four threads, one sandbox with PostgreSQL and Redis",
+        "unit": "milliseconds and requests/second",
+        "finding": "successful contracts in this narrow synthetic run, not production capacity",
+        "derivation": "pandas linear empirical quantiles; requests divided by measured wall time",
+        "presentation": "prose + latency quantile table",
+        "reason": "latency distribution quantiles, no requested visual or product analytics"
+      }
+    ],
+    "overall": {
+      "requests": 1200,
+      "failures": 0,
+      "elapsed_seconds": 12.419436018999932,
+      "requests_per_second": 96.62274503964386,
+      "p50_ms": 74.04868599996917,
+      "p95_ms": 115.38086734989292,
+      "p99_ms": 138.67336299009813,
+      "workers": 8,
+      "warmup_requests_excluded": 40
+    },
+    "routes": [
+      {
+        "scenario": "catalog",
+        "requests": 300,
+        "p50_ms": 84.58769449998726,
+        "p95_ms": 125.95230714999846,
+        "p99_ms": 157.07374520014102,
+        "db_query_min": 2,
+        "db_query_max": 2,
+        "db_ms_p95": 65.87141015004363,
+        "slow_queries": 0
+      },
+      {
+        "scenario": "detail",
+        "requests": 300,
+        "p50_ms": 66.13358000004155,
+        "p95_ms": 91.09955674999813,
+        "p99_ms": 119.13330881986211,
+        "db_query_min": 4,
+        "db_query_max": 4,
+        "db_ms_p95": 46.426842149810454,
+        "slow_queries": 0
+      },
+      {
+        "scenario": "recommendations",
+        "requests": 300,
+        "p50_ms": 78.82847050007058,
+        "p95_ms": 115.86274830002597,
+        "p99_ms": 128.04088504998387,
+        "db_query_min": 2,
+        "db_query_max": 2,
+        "db_ms_p95": 34.76142219992653,
+        "slow_queries": 0
+      },
+      {
+        "scenario": "search",
+        "requests": 300,
+        "p50_ms": 72.59098150007048,
+        "p95_ms": 103.09968439983095,
+        "p99_ms": 118.46069805020758,
+        "db_query_min": 2,
+        "db_query_max": 2,
+        "db_ms_p95": 33.049232599955765,
+        "slow_queries": 0
+      }
+    ],
+    "search_plan": {
+      "indexes_used": [
+        "product_search_gin"
+      ],
+      "execution_ms": 0.181,
+      "planning_ms": 0.453,
+      "result_rows": 20
+    },
+    "validation": {
+      "profile_warnings": "constant status=200/all-null error fields expected; no rows excluded",
+      "server_join": "one-to-one; all measured client requests matched",
+      "maintenance": "post-bulk-load VACUUM ANALYZE; original unmaintained plan chose Seq Scan, no optimizer settings forced",
+      "cross_foot": true
+    },
+    "limitations": [
+      "synthetic public reads only, not payment/OTP/checkout load",
+      "closed-loop, short run, no arrival-rate guarantee",
+      "local DEBUG bench settings with anonymous rate raised, no TLS/proxy/network latency",
+      "all components and client share one sandbox; no production-capacity or before/after speedup claim"
+    ]
+  },
+  "restore": {
+    "synthetic_only": true,
+    "backup_restore_equal": true,
+    "search_migration_reverse_reapply_equal": true,
+    "tables_checked": 13,
+    "counts": {
+      "shop_category": 100,
+      "shop_product": 10000,
+      "shop_productvariant": 5000,
+      "shop_review": 5000,
+      "account_shopuser": 2,
+      "addresses_address": 1,
+      "orders_order": 1,
+      "orders_orderitem": 1,
+      "orders_coupon": 1,
+      "orders_couponuse": 1,
+      "orders_orderevent": 2,
+      "orders_ordernotification": 2,
+      "payment_payment": 1
+    },
+    "backup_bytes": 464289
+  },
+  "qa": {
+    "postgresql_tests": 187,
+    "docker_tests": 187,
+    "sqlite_pass": 177,
+    "sqlite_skip": 10,
+    "concurrency_cases": 4,
+    "concurrency_runs": 5
+  }
+}

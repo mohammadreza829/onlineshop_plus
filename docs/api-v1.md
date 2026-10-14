@@ -99,3 +99,8 @@ Real SMS, production settlement, cross-origin frontend behavior, load testing an
 ## توسعه فاز ۴
 
 قرارداد variant، کوپن، نظرات/امتیاز، علاقه‌مندی، timeline/notification و staff dashboard: [امکانات فروشگاهی](shop-features.md). فیلدهای جدید additive هستند؛ محصول دارای variant باید `variant_id` دریافت کند. تخفیف کوپن در پاسخ checkout نهایی می‌شود.
+
+
+## توسعه فاز ۵
+
+`ordering=relevance` برای search PostgreSQL و `GET /api/v1/products/{slug}/recommendations/?limit=8` (سقف ۲۰، عمومی) اضافه شد. [قرارداد جستجو/پیشنهاد و کش](backend-performance.md). داده مالی/خصوصی در shared cache قرار نمی‌گیرد؛ تصمیم نوع فرانت به گفت‌وگو با صاحب پروژه موکول است.
