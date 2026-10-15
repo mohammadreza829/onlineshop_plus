@@ -121,3 +121,15 @@ it("supports a real variant with blank color/size only after explicit choice", (
   expect(variantFor([v], undefined, undefined)).toBeUndefined();
   expect(variantFor([v], "", "")?.id).toBe(v.id);
 });
+
+it("local setup diagnostics are actionable without displaying arbitrary server errors", () => {
+  expect(
+    errorText(
+      { code: "LOCAL_SETUP_REQUIRED", detail: "private server text" },
+      503,
+    ),
+  ).toContain("npm run doctor");
+  expect(errorText({ detail: "private server text" }, 503)).not.toContain(
+    "private server text",
+  );
+});

@@ -1,3 +1,4 @@
+import { productImageURL } from "@/lib/api/images";
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { parseString } from "set-cookie-parser";
@@ -382,23 +383,7 @@ export async function handleBFF(
           )
             continue;
           if (key === "image" && typeof v === "string") {
-            try {
-              const u = new URL(v, c.upstream);
-              obj[key] =
-                u.origin === c.upstream && u.pathname.startsWith("/media/")
-                  ? "/api/media/" +
-                    u.pathname
-                      .slice(7)
-                      .split("/")
-                      .map(decodeURIComponent)
-                      .map(encodeURIComponent)
-                      .join("/")
-                  : u.protocol === "https:" && c.imageHosts.includes(u.hostname)
-                    ? u.href
-                    : null;
-            } catch {
-              obj[key] = null;
-            }
+            obj[key] = productImageURL(v, c.upstream, c.imageHosts);
           } else if (
             (key === "next" || key === "previous") &&
             typeof v === "string"

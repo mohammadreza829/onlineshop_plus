@@ -26,3 +26,6 @@ frontend/.env*
 frontend/test-results/
 frontend/playwright-report/
 frontend/coverage/
+
+# Never ship laptop-only data or credentials.
+.local/

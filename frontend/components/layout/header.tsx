@@ -83,7 +83,11 @@ export function Header() {
             )}
           </Sheet>
         </div>
-        <Link href="/" className="wordmark">
+        <Link
+          href="/"
+          className="wordmark"
+          aria-label="صفحهٔ اصلی آنلاین شاپ پلاس"
+        >
           {site.name}
           <small lang="en" dir="ltr">
             {site.latinName}
@@ -103,7 +107,7 @@ export function Header() {
         <div className="header-actions">
           <Link
             href="/products"
-            className="icon-button optional"
+            className="icon-button search-trigger"
             aria-label="جست‌وجوی لباس"
           >
             <Search size={20} />

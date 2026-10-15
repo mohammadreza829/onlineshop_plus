@@ -9,6 +9,14 @@ export class ApiError extends Error {
   }
 }
 export function errorText(data: unknown, status = 0): string {
+  if (
+    status === 503 &&
+    data &&
+    typeof data === "object" &&
+    "code" in data &&
+    data.code === "LOCAL_SETUP_REQUIRED"
+  )
+    return "تنظیمات اجرای محلی کامل نیست؛ در پوشهٔ frontend دستور npm run doctor را اجرا کنید.";
   if (status >= 500)
     return status === 503
       ? "سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید."

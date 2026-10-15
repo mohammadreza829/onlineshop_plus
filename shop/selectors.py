@@ -16,7 +16,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce
 
-from .models import Category, Product, ProductVariant, Review
+from .models import Category, Product, ProductImage, ProductVariant, Review
 from .search import normalize_search, search_products
 
 
@@ -34,6 +34,11 @@ def catalog_products(
         Product.objects.filter(is_active=True)
         .select_related("category")
         .annotate(
+            catalog_image=Subquery(
+                ProductImage.objects.filter(product_id=OuterRef("pk"))
+                .order_by("-is_primary", "order", "pk")
+                .values("image")[:1]
+            ),
             rating_average=Subquery(ratings.values("average")),
             rating_count=Coalesce(Subquery(ratings.values("total")), Value(0)),
             has_variants=Exists(variants),

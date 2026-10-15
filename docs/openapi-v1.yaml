@@ -2200,10 +2200,17 @@ components:
         rating_count:
           type: integer
           readOnly: true
+        image:
+          type: string
+          nullable: true
+          description: List thumbnail without a detail HTTP request or per-item DB
+            query.
+          readOnly: true
       required:
       - category
       - final_price
       - id
+      - image
       - inventory
       - name
       - 'off'
@@ -2260,6 +2267,12 @@ components:
         rating_count:
           type: integer
           readOnly: true
+        image:
+          type: string
+          nullable: true
+          description: List thumbnail without a detail HTTP request or per-item DB
+            query.
+          readOnly: true
         description:
           type: string
           readOnly: true
@@ -2285,6 +2298,7 @@ components:
       - features
       - final_price
       - id
+      - image
       - images
       - inventory
       - name

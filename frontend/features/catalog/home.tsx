@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ArrowUpLeft } from "lucide-react";
+import { ArrowUpLeft, WifiOff } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type { Category, Product, Page } from "@/lib/api/types";
@@ -27,6 +27,42 @@ export function HomeCatalog({
         api<Page<Product>>("products/?ordering=-created&limit=8", { signal }),
       initialData: initialProducts,
     });
+  if (categories.isError && products.isError)
+    return (
+      <section
+        className="panel catalog-offline"
+        aria-labelledby="catalog-offline-title"
+      >
+        <WifiOff size={24} aria-hidden="true" />
+        <div>
+          <h2 id="catalog-offline-title">فعلاً به کاتالوگ دسترسی نداریم</h2>
+          <p className="subtle">
+            اطلاعات لباس‌ها از فروشگاه دریافت نشد. این وضعیت به معنی خالی‌بودن
+            کاتالوگ نیست.
+          </p>
+          <ErrorNotice error={products.error} />
+          <p className="small subtle" style={{ marginTop: 12 }}>
+            اگر پروژه را روی لپ‌تاپ اجرا می‌کنید، بک‌اند Django هم باید روشن
+            باشد. راهنمای اتصال در README فرانت آمده است.
+          </p>
+          <div className="row">
+            <button
+              className="button secondary"
+              onClick={() => {
+                void categories.refetch();
+                void products.refetch();
+              }}
+            >
+              تلاش دوباره
+            </button>
+            <Link className="text-link" href="/products">
+              رفتن به کاتالوگ
+              <ArrowUpLeft size={18} />
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
   return (
     <>
       <section className="section">
@@ -74,7 +110,15 @@ export function HomeCatalog({
           </Link>
         </div>
         {products.isPending ? (
-          <Loading />
+          <div
+            role="status"
+            aria-label="دریافت لباس‌ها"
+            className="catalog-skeleton"
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <div className="skeleton" key={i} />
+            ))}
+          </div>
         ) : products.isError ? (
           <ErrorNotice
             error={products.error}

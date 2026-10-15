@@ -112,3 +112,9 @@ Real SMS, production settlement, cross-origin frontend behavior, load testing an
 - `GET client-options/` returns currency/time zone, cart/pagination constraints and the existing five province choices, with no secrets.
 - Canonical and legacy API responses are `private, no-store`. No cross-origin policy or frontend framework is selected.
 - [Integration guide](frontend-handoff.md) and [checked-in OpenAPI](openapi-v1.yaml). A snapshot test prevents unnoticed contract drift.
+
+### Catalogue thumbnail (additive)
+
+Product list/detail/recommendation payloads include nullable `image`: the primary product image, falling back to the first image by `order`/ID, or `null`. This is a media URL, not a new upload endpoint. Catalogue selectors resolve it with a subquery, avoiding per-product queries or detail HTTP calls just to render list cards. The storefront maps both SSR and BFF image URLs to its existing same-origin media proxy. The checked-in OpenAPI schema includes this field.
+
+For isolated synthetic catalogue data and disabled external services during laptop testing, see [laptop-setup.md](laptop-setup.md); this does not change production configuration requirements.

@@ -16,6 +16,12 @@ export function Footer() {
           <Link href="/account/orders">سفارش‌های من</Link>
         </nav>
       </div>
+      <div className="container footer-bottom">
+        <span lang="en" dir="ltr">
+          ONLINE SHOP PLUS
+        </span>
+        <span>برای انتخاب‌هایی که به شما می‌آیند.</span>
+      </div>
     </footer>
   );
 }

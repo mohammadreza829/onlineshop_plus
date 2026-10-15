@@ -52,6 +52,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
     rating_average = serializers.FloatField(read_only=True, allow_null=True)
     rating_count = serializers.IntegerField(read_only=True)
     inventory = serializers.IntegerField(source="available_stock", read_only=True)
@@ -72,8 +73,18 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "rating_average",
             "rating_count",
+            "image",
         ]
         read_only_fields = fields
+
+    def get_image(self, obj) -> str | None:
+        """List thumbnail without a detail HTTP request or per-item DB query."""
+        name = getattr(obj, "catalog_image", None)
+        if not name:
+            return None
+        url = ProductImage._meta.get_field("image").storage.url(name)
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
 
 
 class FeatureSerializer(serializers.ModelSerializer):
