@@ -12,6 +12,7 @@ export function ProductCard({ product: p }: { product: Product }) {
         className="product-media"
         aria-label={"مشاهدهٔ " + p.name}
       >
+        {p.off > 0 && <span className="product-discount">{p.off}٪ تخفیف</span>}
         {p.image ? (
           <Image
             src={p.image}
@@ -38,7 +39,10 @@ export function ProductCard({ product: p }: { product: Product }) {
           </h3>
           {p.inventory <= 0 && <span className="badge">ناموجود</span>}
         </div>
-        <div className="price">{toman(p.final_price)}</div>
+        <div className="price">
+          {p.off > 0 && <del className="old-price">{toman(p.price)}</del>}
+          {toman(p.final_price)}
+        </div>
       </div>
     </article>
   );

@@ -18,6 +18,7 @@ export function Sheet({
       <Dialog.Portal>
         <Dialog.Overlay className="overlay" />
         <Dialog.Content
+          data-lenis-prevent
           dir="rtl"
           className="sheet"
           aria-describedby={undefined}

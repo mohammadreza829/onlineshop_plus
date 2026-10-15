@@ -2,16 +2,16 @@
 export const site = {
   name: "آنلاین شاپ پلاس",
   latinName: "ONLINE SHOP PLUS",
-  description: "انتخاب لباس، به سادگی.",
+  description: "روایتی تازه از انتخاب لباس؛ جزئیات بیشتر، انتخاب شخصی‌تر.",
   legalContentReady: false,
   hero: {
-    eyebrow: "یک نگاه تازه به انتخاب لباس",
-    title: "سبک شما،",
-    accent: "انتخاب شما.",
+    eyebrow: "انتخابی که شبیه خودت است",
+    title: "خارج از تکرار.",
+    accent: "نزدیک به خودت.",
     description:
-      "میان لباس‌ها بگردید، جزئیات را ببینید و رنگ و سایز مناسب خودتان را انتخاب کنید.",
-    cta: "مشاهدهٔ لباس‌ها",
-    artLabel: "THE EVERYDAY EDIT",
+      "لباس را فقط نبین؛ جزئیاتش را کشف کن. از میان رنگ‌ها، فرم‌ها و انتخاب‌های موجود، روایت خودت را بساز.",
+    cta: "کشف لباس‌ها",
+    artLabel: "A NEW PERSPECTIVE",
   },
   otpResendSeconds: 60,
 } as const;

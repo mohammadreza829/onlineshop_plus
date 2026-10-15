@@ -129,4 +129,4 @@ Playwright از Chromium نصب‌شده استفاده می‌کند (`CHROMIUM
 
 ## بازطراحی مدرن
 
-گزارش به‌روز تست و محدودیت‌ها: [redesign-validation.md](docs/redesign-validation.md). اسکرول native و انیمیشن‌های کوتاه CSS با احترام به reduced-motion جایگزین حرکت‌های سنگین hero شده‌اند؛ Radix مسئول focus trap و scroll lock پنل‌هاست. dependencyهای Motion/GSAP/Lenis از تحویل قبلی حفظ شده‌اند اما در runtime جدید import نمی‌شوند.
+نسخهٔ تازه: [راهنمای Immersive و محدودهٔ تست](docs/immersive-redesign.md). GSAP برای انیمیشن ورود، reveal، parallax و دکمهٔ مغناطیسی به‌صورت lazy فعال است؛ Lenis فقط روی دسکتاپ با اشاره‌گر دقیق در خانه و محصولات فعال می‌شود. فرم‌ها، خرید، حساب، موبایل و reduced-motion اسکرول native دارند. Radix مسئول focus trap و scroll lock پنل‌هاست. [گزارش نسخهٔ قبلی](docs/redesign-validation.md) مربوط به بازطراحی قبلی است، نه نتیجهٔ تست این نسخه.

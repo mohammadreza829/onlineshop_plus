@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { site } from "@/config/site";
 import { siteURL } from "@/lib/api/server";
+import { Experience } from "@/components/motion/experience";
 import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: siteURL(),
@@ -32,7 +33,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </a>
         <Providers>
           <Header />
-          <main id="main">{children}</main>
+          <main id="main">
+            <Experience>{children}</Experience>
+          </main>
           <Footer />
         </Providers>
       </body>

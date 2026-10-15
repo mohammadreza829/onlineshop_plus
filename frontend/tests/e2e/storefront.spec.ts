@@ -337,6 +337,7 @@ test("empty catalog, cart, favorites and notifications are honest", async ({
 });
 
 test("basic WCAG checks on desktop and mobile and dialog", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await mockAPI(page);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -357,20 +358,17 @@ test("basic WCAG checks on desktop and mobile and dialog", async ({ page }) => {
   expect(result.violations).toEqual([]);
 });
 
-test("native scrolling: dialog focus/scroll-lock, route cleanup and live reduced-motion", async ({
+test("progressive motion: dialog lock, route cleanup and live reduced-motion", async ({
   page,
 }) => {
+  await mockAPI(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.locator("html")).not.toHaveClass(/lenis/);
+  await expect(page.locator("html")).toHaveClass(/lenis/);
   await page.getByRole("button", { name: "باز کردن سبد خرید" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(() => document.body.hasAttribute("data-scroll-locked")),
-    )
-    .toBe(true);
+  await expect(page.locator("html")).toHaveClass(/lenis-stopped/);
   await page.keyboard.press("Tab");
   await expect
     .poll(() =>
@@ -385,15 +383,27 @@ test("native scrolling: dialog focus/scroll-lock, route cleanup and live reduced
       page.evaluate(() => document.body.hasAttribute("data-scroll-locked")),
     )
     .toBe(false);
+  await expect(page.locator("html")).not.toHaveClass(/lenis-stopped/);
   await page
     .getByRole("link", { name: "همهٔ لباس‌ها", exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/products$/);
+  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await page
+    .getByRole("link", { name: "حساب کاربری", exact: true })
+    .first()
+    .click();
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
-  await page.goBack();
+  await page.goto("/checkout");
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/lenis/);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
 });
 
@@ -415,6 +425,7 @@ test("catalog service failure stays distinct from an empty catalog", async ({
 test("home editorial is accessible and never represented as catalogue merchandise", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const hydration: string[] = [];
   page.on("console", (message) => {
     if (/hydrat|Minified React error #(418|423|425)/i.test(message.text()))
@@ -426,7 +437,7 @@ test("home editorial is accessible and never represented as catalogue merchandis
   });
   await mockAPI(page);
   await page.goto("/");
-  await expect(page.locator(".hero-visual figcaption")).toContainText(
+  await expect(page.locator(".hero-art-note")).toContainText(
     "نه کالای کاتالوگ",
   );
   expect(hydration).toEqual([]);

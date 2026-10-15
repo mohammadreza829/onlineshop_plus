@@ -39,3 +39,15 @@ writeFileSync(
     "base64",
   ),
 );
+
+// Immersive editorial asset is text-transported; generated binary stays local.
+writeFileSync(
+  resolve(root, "public/editorial/immersive.webp"),
+  Buffer.from(
+    readFileSync(
+      resolve(root, "assets/immersive-hero.webp.b64"),
+      "utf8",
+    ).trim(),
+    "base64",
+  ),
+);
