@@ -2022,3 +2022,11 @@ a:hover {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
+
+.noscript-notice {
+  padding: 24px;
+  margin: 24px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}

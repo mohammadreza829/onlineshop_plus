@@ -85,7 +85,7 @@ test("streamed home matches server snapshot even when header data arrives early"
   expect(hydration).toEqual([]);
 });
 
-test("cinematic entry remains readable without JavaScript", async ({
+test("JavaScript-disabled shell explains interactive requirements", async ({
   browser,
   baseURL,
 }) => {
@@ -97,8 +97,11 @@ test("cinematic entry remains readable without JavaScript", async ({
   try {
     const page = await context.newPage();
     await page.goto("/");
-    await expect(page.locator("#home-title")).toBeVisible();
-    await expect(page.locator(".hero-actions a").first()).toHaveAttribute(
+    await expect(page.locator("#noscript-title")).toBeVisible();
+    await expect(page.locator(".noscript-notice")).toContainText(
+      "به جاوااسکریپت نیاز دارند",
+    );
+    await expect(page.locator(".noscript-notice a")).toHaveAttribute(
       "href",
       "/products",
     );

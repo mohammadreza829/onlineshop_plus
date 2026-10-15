@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { canUseSmoothScroll } from "@/lib/motion/policy";
 
-/** Progressive motion: content remains readable with JS disabled or imports failing. */
+/** Progressive motion: motion-import failures leave the native shopping UI usable. */
 export function Experience({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const root = useRef<HTMLDivElement>(null);
