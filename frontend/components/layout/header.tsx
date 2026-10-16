@@ -55,7 +55,7 @@ export function Header() {
       <div className="announcement">
         <span>
           <i className="dot" />
-          سبک شخصی، از دیدن جزئیات شروع می‌شود.
+          سبک خوب، از انتخاب خودت شروع می‌شود.
         </span>
         <bdi dir="ltr">NEW PERSPECTIVE / ONLINE SHOP PLUS</bdi>
       </div>

@@ -86,8 +86,8 @@ export function HomeCatalog({
       <section className="section" data-reveal>
         <div className="section-head">
           <div>
-            <p className="eyebrow">از کجا شروع کنیم؟</p>
-            <h2>در میان دسته‌ها</h2>
+            <p className="eyebrow">از اینجا شروع کن</p>
+            <h2>برای هر سلیقه، یک مسیر</h2>
           </div>
           <Link className="text-link small" href="/products">
             دیدن همه
@@ -119,8 +119,8 @@ export function HomeCatalog({
       <section className="section" data-reveal style={{ paddingTop: 16 }}>
         <div className="section-head">
           <div>
-            <p className="eyebrow">تازه به فروشگاه رسیده</p>
-            <h2>تازه‌ترین لباس‌ها</h2>
+            <p className="eyebrow">نگاهی به تازه‌ها</p>
+            <h2>تازه‌رسیده‌ها</h2>
           </div>
           <Link className="text-link small" href="/products?ordering=-created">
             مشاهدهٔ کاتالوگ

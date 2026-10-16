@@ -26,8 +26,8 @@ export function Footer() {
           </nav>
         </div>
         <div className="footer-bottom">
-          <span>برای انتخاب‌هایی که روایت خودت هستند.</span>
-          <bdi dir="ltr">DESIGNED AROUND YOU / RTL</bdi>
+          <span>خوش‌پوشی، به انتخاب تو.</span>
+          <bdi dir="ltr">YOUR EVERYDAY, RECONSIDERED</bdi>
         </div>
       </div>
     </footer>

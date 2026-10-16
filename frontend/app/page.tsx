@@ -65,17 +65,17 @@ export default async function Home() {
               <ArrowUpLeft size={21} />
             </Link>
             <Link className="text-link" href="/products?ordering=-created">
-              تازه‌ترین انتخاب‌ها
+              تازه‌رسیده‌ها
               <ArrowUpLeft size={18} />
             </Link>
           </div>
           <div className="hero-bottom">
             <p className="hero-art-note">
-              <bdi dir="ltr">{site.hero.artLabel}</bdi>تصویر الهام‌بخش با هوش
+              <bdi dir="ltr">{site.hero.artLabel}</bdi>تصویر مفهومی با هوش
               مصنوعی؛ نه کالای کاتالوگ
             </p>
             <a className="scroll-hint" href="#discover">
-              به کشف‌کردن ادامه بده
+              کمی پایین‌تر، انتخاب‌های بیشتر
               <ArrowDown size={18} />
             </a>
             <p className="hero-count" dir="ltr">
@@ -98,16 +98,16 @@ export default async function Home() {
       <div className="container" id="discover">
         <section className="browse-intro" data-reveal>
           <div>
-            <p className="eyebrow">فراتر از یک انتخاب معمولی</p>
+            <p className="eyebrow">ساده‌تر ببین. بهتر انتخاب کن.</p>
             <h2>
-              کمدت را با نگاه
+              خوب پوشیدن،
               <br />
-              خودت بازتعریف کن.
+              از خودت شروع می‌شود.
             </h2>
           </div>
           <p>
-            همه‌چیز از یک جزئیات شروع می‌شود؛ یک رنگ، یک فرم، یک انتخاب. اینجا
-            از اطلاعات واقعی هر محصول به انتخاب بعدی‌ات می‌رسی.
+            برای سلیقهٔ تو قانون ثابتی نیست. مدل‌ها را ببین، جزئیات را بخوان و
+            چیزی را انتخاب کن که دوستش داری.
           </p>
         </section>
         <HomeCatalog
@@ -121,27 +121,27 @@ export default async function Home() {
         >
           <div>
             <SlidersHorizontal size={20} />
-            <span>جست‌وجو، مطابق انتخاب شما</span>
+            <span>جست‌وجوی ساده‌تر</span>
           </div>
           <div>
             <Palette size={20} />
-            <span>رنگ و سایز از اطلاعات محصول</span>
+            <span>رنگ و سایز دلخواه</span>
           </div>
           <div>
             <ShoppingBag size={20} />
-            <span>مرور انتخاب‌ها، پیش از سفارش</span>
+            <span>همهٔ انتخاب‌ها، یک‌جا</span>
           </div>
         </div>
         <section className="editorial-note" data-reveal>
           <div>
-            <p className="eyebrow">هر جزئیات، یک تفاوت.</p>
+            <p className="eyebrow">تفاوت، در جزئیات است.</p>
             <h2>
-              قرار نیست شبیه
+              جزئیات را ببین.
               <br />
-              همه انتخاب کنی.
+              تفاوت را حس کن.
             </h2>
             <Link href="/products" className="text-link">
-              انتخاب بعدی تو
+              لباس بعدی‌ات را پیدا کن
               <ArrowUpLeft size={18} />
             </Link>
           </div>
