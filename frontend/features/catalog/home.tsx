@@ -1,5 +1,10 @@
 "use client";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
+
+const subscribeHydration = () => () => {};
+const browserSnapshot = () => true;
+const serverSnapshot = () => false;
 import { ArrowUpLeft, WifiOff } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -13,6 +18,11 @@ export function HomeCatalog({
   initialProducts?: Page<Product>;
   initialCategories?: Page<Category>;
 }) {
+  const hydrated = useSyncExternalStore(
+    subscribeHydration,
+    browserSnapshot,
+    serverSnapshot,
+  );
   const categories = useQuery({
       queryKey: ["categories/?roots_only=true&limit=100"],
       queryFn: ({ signal }) =>
@@ -27,7 +37,15 @@ export function HomeCatalog({
         api<Page<Product>>("products/?ordering=-created&limit=8", { signal }),
       initialData: initialProducts,
     });
-  if (categories.isError && products.isError)
+  // The header shares the category cache and may hydrate before this streamed boundary.
+  // Match the server snapshot for the first hydration render, then show live query data.
+  const categoryData = hydrated ? categories.data : initialCategories;
+  const productData = hydrated ? products.data : initialProducts;
+  const categoryPending = hydrated ? categories.isPending : !initialCategories;
+  const productPending = hydrated ? products.isPending : !initialProducts;
+  const categoryError = hydrated && categories.isError;
+  const productError = hydrated && products.isError;
+  if (categoryError && productError)
     return (
       <section
         className="panel catalog-offline"
@@ -65,27 +83,27 @@ export function HomeCatalog({
     );
   return (
     <>
-      <section className="section">
+      <section className="section" data-reveal>
         <div className="section-head">
           <div>
-            <p className="eyebrow">از کجا شروع کنیم؟</p>
-            <h2>در میان دسته‌ها</h2>
+            <p className="eyebrow">از اینجا شروع کن</p>
+            <h2>برای هر سلیقه، یک مسیر</h2>
           </div>
           <Link className="text-link small" href="/products">
             دیدن همه
             <ArrowUpLeft size={18} />
           </Link>
         </div>
-        {categories.isPending ? (
+        {categoryPending ? (
           <Loading />
-        ) : categories.isError ? (
+        ) : categoryError ? (
           <ErrorNotice
             error={categories.error}
             retry={() => categories.refetch()}
           />
-        ) : categories.data.results.length ? (
+        ) : categoryData?.results.length ? (
           <nav className="category-list" aria-label="دسته‌های لباس">
-            {categories.data.results.map((c) => (
+            {categoryData.results.map((c) => (
               <Link
                 key={c.id}
                 href={"/products?category=" + encodeURIComponent(c.slug)}
@@ -98,18 +116,18 @@ export function HomeCatalog({
           <p className="subtle">هنوز دسته‌ای در فروشگاه ثبت نشده است.</p>
         )}
       </section>
-      <section className="section" style={{ paddingTop: 16 }}>
+      <section className="section" data-reveal style={{ paddingTop: 16 }}>
         <div className="section-head">
           <div>
-            <p className="eyebrow">تازه به فروشگاه رسیده</p>
-            <h2>تازه‌ترین لباس‌ها</h2>
+            <p className="eyebrow">نگاهی به تازه‌ها</p>
+            <h2>تازه‌رسیده‌ها</h2>
           </div>
           <Link className="text-link small" href="/products?ordering=-created">
             مشاهدهٔ کاتالوگ
             <ArrowUpLeft size={18} />
           </Link>
         </div>
-        {products.isPending ? (
+        {productPending ? (
           <div
             role="status"
             aria-label="دریافت لباس‌ها"
@@ -119,13 +137,13 @@ export function HomeCatalog({
               <div className="skeleton" key={i} />
             ))}
           </div>
-        ) : products.isError ? (
+        ) : productError ? (
           <ErrorNotice
             error={products.error}
             retry={() => products.refetch()}
           />
-        ) : products.data.results.length ? (
-          <ProductGrid products={products.data.results} />
+        ) : productData?.results.length ? (
+          <ProductGrid products={productData.results} />
         ) : (
           <Empty
             title="کاتالوگ در انتظار اولین انتخاب‌هاست"

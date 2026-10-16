@@ -39,3 +39,29 @@ writeFileSync(
     "base64",
   ),
 );
+
+// Immersive editorial asset is text-transported; generated binary stays local.
+writeFileSync(
+  resolve(root, "public/editorial/immersive.webp"),
+  Buffer.from(
+    readFileSync(
+      resolve(root, "assets/immersive-hero.webp.b64"),
+      "utf8",
+    ).trim(),
+    "base64",
+  ),
+);
+
+// Independent alpha garment + reconstructed stage for the layered poster.
+for (const layer of ["stage", "garment"]) {
+  writeFileSync(
+    resolve(root, `public/editorial/${layer}.webp`),
+    Buffer.from(
+      readFileSync(
+        resolve(root, `assets/immersive-${layer}.webp.b64`),
+        "utf8",
+      ).trim(),
+      "base64",
+    ),
+  );
+}
