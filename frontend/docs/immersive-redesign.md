@@ -1,5 +1,7 @@
 # بازطراحی Immersive فروشگاه
 
+ادامهٔ طراحی و پوستر چندلایه: [Atelier](atelier-polish.md).
+
 ## مبنا و محدوده
 
 این نسخه از شاخهٔ `frontend/modern-redesign` در commit
