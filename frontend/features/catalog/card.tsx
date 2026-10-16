@@ -2,9 +2,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { TiltSurface } from "@/components/motion/tilt-surface";
-import { Shirt } from "lucide-react";
+import { Shirt, ArrowUpLeft } from "lucide-react";
 import type { Product } from "@/lib/api/types";
-import { toman } from "@/lib/format";
+import { toman, number } from "@/lib/format";
 export function ProductCard({ product: p }: { product: Product }) {
   return (
     <article className="product-card">
@@ -15,7 +15,9 @@ export function ProductCard({ product: p }: { product: Product }) {
           aria-label={"مشاهدهٔ " + p.name}
         >
           {p.off > 0 && (
-            <span className="product-discount">{p.off}٪ تخفیف</span>
+            <span className="product-discount">
+              <bdi dir="ltr">{number(p.off)}٪</bdi> تخفیف
+            </span>
           )}
           {p.image ? (
             <Image
@@ -33,7 +35,7 @@ export function ProductCard({ product: p }: { product: Product }) {
             </span>
           )}
           <span className="card-discover" aria-hidden="true">
-            دیدن جزئیات
+            دیدن جزئیات <ArrowUpLeft size={16} />
           </span>
         </Link>
       </TiltSurface>

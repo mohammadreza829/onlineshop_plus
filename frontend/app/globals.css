@@ -530,8 +530,8 @@ a:hover {
 /* Cinematic editorial homepage. Image is decoration, never a fake catalogue item. */
 .immersive-hero {
   position: relative;
-  min-height: 680px;
-  height: calc(100svh - 120px);
+  min-height: 620px;
+  height: calc(100svh - 124px);
   max-height: 1000px;
   background: #131914;
   color: #f5f4ec;
@@ -608,6 +608,7 @@ a:hover {
   animation-play-state: running;
 }
 .scene-control {
+  min-width: 44px;
   position: absolute;
   bottom: 28px;
   left: max(24px, calc((100vw - 1280px) / 2));
@@ -727,14 +728,6 @@ a:hover {
 }
 .scroll-hint svg {
   animation: scroll-hint 2s ease-in-out infinite;
-}
-.hero-count {
-  font-family: Arial, sans-serif;
-  font-size: 14px;
-  letter-spacing: 0.2em;
-}
-.hero-count span {
-  color: var(--lime);
 }
 .kinetic-strip {
   overflow: hidden;
@@ -977,7 +970,7 @@ a:hover {
   z-index: 1;
   background: radial-gradient(
     circle at var(--light-x, 50%) var(--light-y, 35%),
-    #ffffff40,
+    #ffffff24,
     transparent 55%
   );
   opacity: 0;
@@ -987,7 +980,13 @@ a:hover {
 .tilt-surface[data-tilting="true"] .product-media::before {
   opacity: 1;
 }
+.product-card .product-media::after {
+  display: none;
+}
 .card-discover {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   position: absolute;
   bottom: 16px;
   inset-inline-end: 16px;
@@ -1735,7 +1734,7 @@ a:hover {
     max-width: 550px;
   }
   .immersive-hero {
-    min-height: 650px;
+    min-height: 620px;
   }
   .account-shell {
     grid-template-columns: 210px minmax(0, 1fr);
@@ -1809,11 +1808,11 @@ a:hover {
   }
   .immersive-hero {
     height: auto;
-    min-height: 750px;
+    min-height: max(680px, calc(100svh - 112px));
     max-height: none;
   }
   .hero-layout {
-    min-height: 750px;
+    min-height: max(680px, calc(100svh - 112px));
     padding-block: 36px 310px;
     justify-content: start;
   }
@@ -1862,9 +1861,6 @@ a:hover {
     font-size: 14px;
   }
   .hero-art-note bdi {
-    font-size: 14px;
-  }
-  .hero-count {
     font-size: 14px;
   }
   .scroll-hint {
