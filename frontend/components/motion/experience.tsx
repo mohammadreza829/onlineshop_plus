@@ -58,14 +58,6 @@ export function Experience({ children }: { children: React.ReactNode }) {
               clearProps: "transform,opacity",
             },
           );
-          if (root.current?.querySelector("[data-hero]")) {
-            gsap.from(".hero-picture img", {
-              scale: 1.08,
-              duration: 1.8,
-              ease: "power2.out",
-              clearProps: "transform",
-            });
-          }
           const reveals = gsap.utils.toArray<HTMLElement>("[data-reveal]");
           reveals.forEach((element) =>
             gsap.from(element, {
@@ -78,17 +70,6 @@ export function Experience({ children }: { children: React.ReactNode }) {
             }),
           );
           if (desktop.matches) {
-            if (root.current?.querySelector("[data-hero]"))
-              gsap.to("[data-parallax]", {
-                yPercent: 9,
-                ease: "none",
-                scrollTrigger: {
-                  trigger: "[data-hero]",
-                  start: "top top",
-                  end: "bottom top",
-                  scrub: 0.7,
-                },
-              });
             gsap.utils.toArray<HTMLElement>("[data-magnetic]").forEach((el) => {
               const move = (e: PointerEvent) => {
                 const r = el.getBoundingClientRect();

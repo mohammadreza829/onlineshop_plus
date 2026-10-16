@@ -1,6 +1,6 @@
 import { site } from "@/config/site";
 import Link from "next/link";
-import Image from "next/image";
+import { HeroScene } from "@/components/motion/hero-scene";
 import {
   ArrowUpLeft,
   ArrowDown,
@@ -29,18 +29,7 @@ export default async function Home() {
         data-hero
         aria-labelledby="home-title"
       >
-        <div className="hero-picture" data-parallax>
-          <Image
-            src="/editorial/immersive.webp"
-            alt="چیدمان تصویری پوشاک و پارچه در فضای معماری؛ تصویر تزئینی تولیدشده با هوش مصنوعی، نه محصول کاتالوگ"
-            width={1376}
-            height={768}
-            preload
-            fetchPriority="high"
-            unoptimized
-            sizes="100vw"
-          />
-        </div>
+        <HeroScene />
         <div className="hero-shade" />
         <div className="container hero-layout">
           <div className="hero-topline" data-enter>
@@ -78,9 +67,6 @@ export default async function Home() {
               کمی پایین‌تر، انتخاب‌های بیشتر
               <ArrowDown size={18} />
             </a>
-            <p className="hero-count" dir="ltr">
-              <span>01</span> — EXPLORE
-            </p>
           </div>
         </div>
       </section>

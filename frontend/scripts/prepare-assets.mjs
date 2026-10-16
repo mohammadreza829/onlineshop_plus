@@ -51,3 +51,17 @@ writeFileSync(
     "base64",
   ),
 );
+
+// Independent alpha garment + reconstructed stage for the layered poster.
+for (const layer of ["stage", "garment"]) {
+  writeFileSync(
+    resolve(root, `public/editorial/${layer}.webp`),
+    Buffer.from(
+      readFileSync(
+        resolve(root, `assets/immersive-${layer}.webp.b64`),
+        "utf8",
+      ).trim(),
+      "base64",
+    ),
+  );
+}

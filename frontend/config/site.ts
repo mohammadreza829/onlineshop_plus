@@ -11,7 +11,7 @@ export const site = {
     description:
       "لباس‌ها را ببین، رنگ و سایز دلخواهت را پیدا کن و انتخابت را با دیدن جزئیات کامل کن.",
     cta: "دیدن مجموعه",
-    artLabel: "A DIFFERENT POINT OF VIEW",
+    artLabel: "NEW PERSPECTIVE",
   },
   otpResendSeconds: 60,
 } as const;

@@ -538,18 +538,99 @@ a:hover {
   isolation: isolate;
   overflow: hidden;
 }
-.hero-picture {
+.hero-scene {
   position: absolute;
   inset: -6% 0;
   width: 100%;
   height: 112%;
   z-index: -3;
+  perspective: 1200px;
+  pointer-events: none;
 }
-.hero-picture img {
+.scene-camera,
+.scene-scroll {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.scene-camera {
+  transform: rotateX(var(--scene-rx, 0deg)) rotateY(var(--scene-ry, 0deg))
+    translate3d(var(--scene-x, 0px), var(--scene-y, 0px), 0);
+  transition: transform 900ms cubic-bezier(0.18, 0.7, 0.25, 1);
+}
+.scene-layer {
+  position: absolute;
+  inset: 0;
+}
+.scene-layer img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+.scene-stage {
+  transform: translateZ(-24px) scale(1.04);
+}
+.scene-garment {
+  transform: translateZ(40px);
+  transform-origin: 34% 42%;
+  filter: drop-shadow(4px 24px 18px #00000024);
+}
+.scene-aura {
+  position: absolute;
+  top: 12%;
+  left: 9%;
+  width: 52%;
+  height: 68%;
+  background: radial-gradient(
+    ellipse,
+    #c6dd841a,
+    #9eb75a08 45%,
+    transparent 70%
+  );
+  transform: translateZ(8px);
+}
+.scene-orbit {
+  position: absolute;
+  top: 20%;
+  left: 15%;
+  width: 37%;
+  aspect-ratio: 1;
+  border: 1px solid #ecf3c65c;
+  border-radius: 50%;
+  box-shadow:
+    0 0 24px #d9f0780c,
+    inset 0 0 20px #d9f07808;
+  transform: translateZ(16px) rotateX(58deg) rotateZ(-18deg);
+  animation: atelier-orbit 22s ease-in-out infinite alternate paused;
+}
+.hero-scene[data-motion="running"] .scene-orbit {
+  animation-play-state: running;
+}
+.scene-control {
+  position: absolute;
+  bottom: 28px;
+  left: max(24px, calc((100vw - 1280px) / 2));
+  z-index: 5;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  color: #f4f4e9;
+  background: #0e1a10b8;
+  backdrop-filter: blur(16px);
+  border: 1px solid #d4dfc440;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.scene-control:hover {
+  background: #223c29;
+}
+@keyframes atelier-orbit {
+  to {
+    transform: translateZ(16px) rotateX(68deg) rotateZ(28deg);
+  }
 }
 .hero-shade {
   position: absolute;
@@ -635,6 +716,11 @@ a:hover {
   font-size: 14px;
 }
 .scroll-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1745,12 +1831,12 @@ a:hover {
     max-width: 290px;
     margin-top: 20px;
   }
-  .hero-picture {
+  .hero-scene {
     inset: 0;
     width: 100%;
     height: 100%;
   }
-  .hero-picture img {
+  .scene-layer img {
     object-position: 30% center;
   }
   .hero-shade {
@@ -2066,7 +2152,10 @@ a:hover {
   .product-media::after {
     transform: none;
   }
-  .hero-picture {
+  .scene-camera,
+  .scene-garment,
+  .scene-stage,
+  .scene-scroll {
     transform: none !important;
   }
 }
@@ -2105,4 +2194,42 @@ a:hover {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
+}
+
+@media (max-width: 700px) {
+  .scene-control {
+    left: 16px;
+    bottom: 18px;
+    padding: 8px 10px;
+  }
+  .scene-control span {
+    display: none;
+  }
+  .scene-orbit {
+    width: 64%;
+    left: -6%;
+    top: 30%;
+    opacity: 0.45;
+  }
+  .scene-garment {
+    filter: none;
+  }
+  .hero-art-note {
+    max-width: 235px;
+  }
+  .hero-bottom {
+    padding-inline-start: 0;
+    padding-inline-end: 54px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-orbit {
+    animation: none !important;
+  }
+  .scene-camera,
+  .scene-garment,
+  .scene-stage,
+  .scene-scroll {
+    transform: none !important;
+  }
 }
