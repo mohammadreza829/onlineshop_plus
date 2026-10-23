@@ -1,4 +1,5 @@
 "use client";
+import { Smartphone } from "lucide-react";
 import { site } from "@/config/site";
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -104,7 +105,10 @@ export function Login() {
   }
   return (
     <div className="panel auth-panel stack">
-      <p className="eyebrow">حساب کاربری / ورود امن</p>
+      <span className="auth-symbol" aria-hidden="true">
+        <Smartphone size={28} strokeWidth={1.5} />
+      </span>
+      <p className="eyebrow">حساب کاربری / ورود با شماره همراه</p>
       <h1 style={{ fontSize: 30 }}>
         {step === "phone" ? "خوش آمدید." : "کد تایید را وارد کنید."}
       </h1>
@@ -134,10 +138,15 @@ export function Login() {
               autoComplete="tel"
               placeholder="09xxxxxxxxx"
               aria-invalid={!!form.formState.errors.phone}
+              aria-describedby={
+                form.formState.errors.phone ? "phone-error" : undefined
+              }
             />
           </label>
           {form.formState.errors.phone && (
-            <p className="field-error">{form.formState.errors.phone.message}</p>
+            <p id="phone-error" className="field-error" role="alert">
+              {form.formState.errors.phone.message}
+            </p>
           )}
           <button className="button" disabled={busy || seconds > 0}>
             {busy ? "در حال درخواست…" : "دریافت کد تایید"}

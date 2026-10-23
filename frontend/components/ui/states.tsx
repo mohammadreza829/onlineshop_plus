@@ -14,7 +14,7 @@ export function Empty({
 }) {
   return (
     <div className="empty">
-      <PackageOpen size={36} strokeWidth={1} />
+      <PackageOpen size={36} strokeWidth={1.3} aria-hidden="true" />
       <h2>{title}</h2>
       <p>{description}</p>
       {href && (
@@ -39,7 +39,7 @@ export function ErrorNotice({
       </p>
       {retry && (
         <button className="text-link" onClick={retry}>
-          <RefreshCw size={16} />
+          <RefreshCw size={16} aria-hidden="true" />
           تلاش دوباره
         </button>
       )}
@@ -48,8 +48,9 @@ export function ErrorNotice({
 }
 export function Loading() {
   return (
-    <p className="loading-text" role="status">
-      در حال دریافت اطلاعات…
-    </p>
+    <div className="loading-state" role="status">
+      <span className="loading-indicator" aria-hidden="true" />
+      <p>در حال دریافت اطلاعات…</p>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { Package, Heart, MapPin, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,9 +61,29 @@ export function Profile({ overview = false }: { overview?: boolean }) {
             سفارش‌ها، آدرس‌ها و انتخاب‌های ذخیره‌شدهٔ شما در این بخش در
             دسترس‌اند.
           </p>
-          <Link className="button secondary" href="/account/orders">
-            مشاهدهٔ سفارش‌ها
-          </Link>
+          <div className="account-shortcuts">
+            <Link href="/account/orders">
+              <Package size={24} aria-hidden="true" />
+              <span>
+                سفارش‌های من<small>جزئیات و پیگیری سفارش</small>
+              </span>
+              <ArrowLeft size={18} aria-hidden="true" />
+            </Link>
+            <Link href="/account/favorites">
+              <Heart size={24} aria-hidden="true" />
+              <span>
+                علاقه‌مندی‌ها<small>انتخاب‌های ذخیره‌شدهٔ شما</small>
+              </span>
+              <ArrowLeft size={18} aria-hidden="true" />
+            </Link>
+            <Link href="/account/addresses">
+              <MapPin size={24} aria-hidden="true" />
+              <span>
+                آدرس‌های من<small>مدیریت نشانی‌های تحویل</small>
+              </span>
+              <ArrowLeft size={18} aria-hidden="true" />
+            </Link>
+          </div>
         </>
       ) : (
         <form

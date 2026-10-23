@@ -1,3 +1,4 @@
+import { PurchaseSteps } from "@/components/ui/purchase-steps";
 import type { Metadata } from "next";
 import { CartView } from "@/features/cart/cart";
 export const metadata: Metadata = {
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <div className="container page">
+      <PurchaseSteps current={0} />
       <div className="section-head">
         <div>
           <p className="eyebrow">انتخاب‌های شما</p>

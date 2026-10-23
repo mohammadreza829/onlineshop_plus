@@ -34,7 +34,7 @@ function Filters({ close }: { close?: () => void }) {
     close?.();
   }
   return (
-    <form onSubmit={submit} key={q.toString()}>
+    <form className="catalog-filter-form" onSubmit={submit} key={q.toString()}>
       <label className="field" htmlFor={id + "category"}>
         دسته‌بندی
         <select
@@ -138,6 +138,10 @@ export function Catalog() {
   return (
     <div className="catalog-layout">
       <aside className="filters desktop-only" aria-label="فیلتر محصولات">
+        <div className="filter-heading">
+          <SlidersHorizontal size={20} aria-hidden="true" />
+          <h2>فیلتر انتخاب‌ها</h2>
+        </div>
         <Filters />
       </aside>
       <section aria-label="محصولات">

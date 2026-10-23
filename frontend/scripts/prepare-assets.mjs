@@ -1,5 +1,5 @@
 // Reproducible local assets: no network/CDN and no runtime dependency added.
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -27,3 +27,14 @@ writeFileSync(
   ),
 );
 console.log("Prepared self-hosted Vazirmatn fonts and local favicon.");
+
+// Generated editorial illustration, not an actual inventory photograph.
+const editorial = Buffer.from(
+  readFileSync(resolve(root, "assets/wardrobe-editorial.webp.b64"), "utf8"),
+  "base64",
+);
+mkdirSync(resolve(root, "public/images"), { recursive: true });
+writeFileSync(
+  resolve(root, "public/images/wardrobe-editorial.webp"),
+  editorial,
+);

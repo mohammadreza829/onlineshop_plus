@@ -1,5 +1,9 @@
 "use client";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
+const subscribe = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 import { ArrowUpLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -13,6 +17,13 @@ export function HomeCatalog({
   initialProducts?: Page<Product>;
   initialCategories?: Page<Category>;
 }) {
+  // Header shares category cache and may resolve before this streamed section hydrates.
+  // Preserve the server snapshot on the first client render; then expose live queries.
+  const hydrated = useSyncExternalStore(
+    subscribe,
+    clientSnapshot,
+    serverSnapshot,
+  );
   const categories = useQuery({
       queryKey: ["categories/?roots_only=true&limit=100"],
       queryFn: ({ signal }) =>
@@ -27,34 +38,37 @@ export function HomeCatalog({
         api<Page<Product>>("products/?ordering=-created&limit=8", { signal }),
       initialData: initialProducts,
     });
+  const categoryData = hydrated ? categories.data : initialCategories;
+  const productData = hydrated ? products.data : initialProducts;
   return (
     <>
       <section className="section">
         <div className="section-head">
           <div>
             <p className="eyebrow">از کجا شروع کنیم؟</p>
-            <h2>در میان دسته‌ها</h2>
+            <h2>از کدام دسته شروع کنیم؟</h2>
           </div>
           <Link className="text-link small" href="/products">
             دیدن همه
             <ArrowUpLeft size={18} />
           </Link>
         </div>
-        {categories.isPending ? (
+        {(hydrated ? categories.isPending : !initialCategories) ? (
           <Loading />
-        ) : categories.isError ? (
+        ) : hydrated && categories.isError ? (
           <ErrorNotice
             error={categories.error}
             retry={() => categories.refetch()}
           />
-        ) : categories.data.results.length ? (
+        ) : categoryData!.results.length ? (
           <nav className="category-list" aria-label="دسته‌های لباس">
-            {categories.data.results.map((c) => (
+            {categoryData!.results.map((c) => (
               <Link
                 key={c.id}
                 href={"/products?category=" + encodeURIComponent(c.slug)}
               >
                 {c.name}
+                <ArrowUpLeft size={18} aria-hidden="true" />
               </Link>
             ))}
           </nav>
@@ -73,15 +87,15 @@ export function HomeCatalog({
             <ArrowUpLeft size={18} />
           </Link>
         </div>
-        {products.isPending ? (
+        {(hydrated ? products.isPending : !initialProducts) ? (
           <Loading />
-        ) : products.isError ? (
+        ) : hydrated && products.isError ? (
           <ErrorNotice
             error={products.error}
             retry={() => products.refetch()}
           />
-        ) : products.data.results.length ? (
-          <ProductGrid products={products.data.results} />
+        ) : productData!.results.length ? (
+          <ProductGrid products={productData!.results} />
         ) : (
           <Empty
             title="کاتالوگ در انتظار اولین انتخاب‌هاست"

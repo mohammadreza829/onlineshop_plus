@@ -1,3 +1,4 @@
+import { PurchaseSteps } from "@/components/ui/purchase-steps";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AuthGate } from "@/features/auth/gate";
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <div className="container page">
+      <PurchaseSteps current={2} />
       <AuthGate>
         <Suspense fallback={<Loading />}>
           <PaymentResult />
