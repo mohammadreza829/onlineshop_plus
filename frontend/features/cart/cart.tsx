@@ -1,5 +1,7 @@
 "use client";
 import { useCartProduct } from "./line-product";
+import Image from "next/image";
+import { Shirt } from "lucide-react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2, ArrowUpLeft } from "lucide-react";
@@ -11,6 +13,8 @@ import { Empty, ErrorNotice, Loading } from "@/components/ui/states";
 import { useToast } from "@/components/providers";
 function CartLine({ item }: { item: CartItem }) {
   const { slug: resolved, product, variant: v } = useCartProduct(item);
+  const image =
+    product?.images.find((image) => image.is_primary) ?? product?.images[0];
   const client = useQueryClient(),
     toast = useToast();
   const path = `cart/items/${item.product_id}/`;
@@ -37,25 +41,40 @@ function CartLine({ item }: { item: CartItem }) {
   });
   return (
     <article className="cart-line">
-      <div>
-        <h3>
-          {resolved ? (
-            <Link href={"/products/" + encodeURIComponent(resolved)}>
-              {item.name}
-            </Link>
+      <div className="cart-product">
+        <div className="cart-thumbnail" aria-hidden="true">
+          {image?.image ? (
+            <Image
+              src={image.image}
+              alt=""
+              width={88}
+              height={112}
+              unoptimized
+            />
           ) : (
-            item.name
+            <Shirt size={28} strokeWidth={1.3} />
           )}
-        </h3>
-        {item.variant_id && (
-          <p className="small subtle">
-            {v
-              ? `رنگ: ${v.color} / سایز: ${v.size}`
-              : `انتخاب ${number(item.variant_id)} — جزئیات تنوع در حال دریافت یا ناموجود است.`}
-          </p>
-        )}
-        <p className="small subtle">قیمت واحد: {toman(item.price)}</p>
-        <strong>{toman(item.total_price)}</strong>
+        </div>
+        <div className="cart-product-copy">
+          <h3>
+            {resolved ? (
+              <Link href={"/products/" + encodeURIComponent(resolved)}>
+                {item.name}
+              </Link>
+            ) : (
+              item.name
+            )}
+          </h3>
+          {item.variant_id && (
+            <p className="small subtle">
+              {v
+                ? `رنگ: ${v.color} / سایز: ${v.size}`
+                : `انتخاب ${number(item.variant_id)} — جزئیات تنوع در حال دریافت یا ناموجود است.`}
+            </p>
+          )}
+          <p className="small subtle">قیمت واحد: {toman(item.price)}</p>
+          <strong>{toman(item.total_price)}</strong>
+        </div>
       </div>
       <div className="stack">
         <label className="field">

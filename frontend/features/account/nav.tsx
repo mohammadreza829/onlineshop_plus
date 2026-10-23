@@ -1,8 +1,10 @@
 "use client";
+import { UserRound, MapPin, Package, Heart, Bell } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { accountLinks } from "@/config/site";
+const icons = [UserRound, MapPin, Package, Heart, Bell];
 export function AccountNav() {
   const path = usePathname();
   const nav = useRef<HTMLElement>(null);
@@ -19,15 +21,19 @@ export function AccountNav() {
   }, [path]);
   return (
     <nav ref={nav} className="account-nav" aria-label="حساب کاربری">
-      {accountLinks.map(([url, label]) => (
-        <Link
-          key={url}
-          href={url}
-          aria-current={path === url ? "page" : undefined}
-        >
-          {label}
-        </Link>
-      ))}
+      {accountLinks.map(([url, label], index) => {
+        const Icon = icons[index];
+        return (
+          <Link
+            key={url}
+            href={url}
+            aria-current={path === url ? "page" : undefined}
+          >
+            <Icon size={20} aria-hidden="true" />
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

@@ -1,8 +1,8 @@
 import { site } from "@/config/site";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpLeft } from "lucide-react";
+import { ArrowLeft, Heart, Palette, SlidersHorizontal } from "lucide-react";
 import { HomeCatalog } from "@/features/catalog/home";
-import { HomeMotion } from "@/lib/motion/home-motion";
 import { publicAPI, siteURL } from "@/lib/api/server";
 import type { Page, Product, Category } from "@/lib/api/types";
 import type { Metadata } from "next";
@@ -17,7 +17,7 @@ export default async function Home() {
     publicAPI<Page<Category>>("categories/?roots_only=true&limit=100"),
   ]);
   return (
-    <div className="container">
+    <div className="container home-page">
       <section className="hero" aria-labelledby="home-title">
         <div className="hero-frame">
           <div className="hero-copy">
@@ -27,27 +27,63 @@ export default async function Home() {
               <br />
               <em>{site.hero.accent}</em>
             </h1>
-            <p className="subtle">{site.hero.description}</p>
-            <Link className="button" href="/products">
-              {site.hero.cta}
-              <ArrowUpLeft size={20} />
-            </Link>
+            <p className="subtle hero-description">{site.hero.description}</p>
+            <div className="row hero-actions">
+              <Link className="button" href="/products">
+                {site.hero.cta}
+                <ArrowLeft size={20} aria-hidden="true" />
+              </Link>
+              <Link className="text-link" href="/products?ordering=-created">
+                تازه‌ترین‌ها
+              </Link>
+            </div>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <span className="art-number">لباس / انتخاب</span>
-            <span className="type-mark">{site.hero.artWord}</span>
-            <span className="art-label" lang="en" dir="ltr">
-              {site.hero.artLabel}
-            </span>
-          </div>
+          <figure className="hero-visual">
+            <Image
+              src="/images/wardrobe-editorial.webp"
+              alt="ترکیب الهام‌بخش پارچه‌های جین، پنبه و بافت در رنگ‌های آبی، سفید و سبز"
+              fill
+              sizes="(max-width: 767px) 100vw, 55vw"
+              priority
+            />
+            <figcaption>تصویر الهام‌بخش استایل؛ نمایش موجودی نیست.</figcaption>
+          </figure>
         </div>
-        <div className="hero-bottom">
-          <span>کاتالوگ لباس · انتخاب رنگ و سایز</span>
-          <span>جزئیات هر انتخاب، پیش از خرید</span>
-        </div>
-        <HomeMotion />
       </section>
+      <div className="discovery-strip" aria-label="امکانات فروشگاه">
+        <div>
+          <Palette size={22} aria-hidden="true" />
+          <span>
+            انتخاب رنگ و سایز<small>جزئیات هر لباس، پیش از خرید</small>
+          </span>
+        </div>
+        <div>
+          <SlidersHorizontal size={22} aria-hidden="true" />
+          <span>
+            پیدا کردن انتخاب شما<small>جست‌وجو بر اساس دسته و قیمت</small>
+          </span>
+        </div>
+        <div>
+          <Heart size={22} aria-hidden="true" />
+          <span>
+            برای بعد نگه دارید<small>ذخیرهٔ انتخاب‌ها در حساب کاربری</small>
+          </span>
+        </div>
+      </div>
       <HomeCatalog initialProducts={products} initialCategories={categories} />
+      <section className="account-invitation">
+        <div>
+          <p className="eyebrow">انتخاب‌های شما، یک‌جا</p>
+          <h2>از پسندیدن تا پوشیدن.</h2>
+          <p className="subtle">
+            علاقه‌مندی‌ها و سفارش‌هایتان را از حساب کاربری دنبال کنید.
+          </p>
+        </div>
+        <Link className="button secondary" href="/account">
+          رفتن به حساب کاربری
+          <ArrowLeft size={20} aria-hidden="true" />
+        </Link>
+      </section>
     </div>
   );
 }

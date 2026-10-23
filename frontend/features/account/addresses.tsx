@@ -211,9 +211,15 @@ export function Addresses({
         <ErrorNotice error={active.error} retry={() => active.refetch()} />
       ) : active.data.results.length ? (
         active.data.results.map((a) => (
-          <article className="panel stack" key={a.id}>
+          <article
+            className={
+              "panel stack address-card" +
+              (select && selected === a.id ? " selected" : "")
+            }
+            key={a.id}
+          >
             {select ? (
-              <label className="row">
+              <label className="row address-selection">
                 <input
                   type="radio"
                   name="address-selection"

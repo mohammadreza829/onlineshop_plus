@@ -40,8 +40,8 @@ export default function Page() {
     <div className="container page">
       <div className="section-head">
         <div>
-          <p className="eyebrow">کاتالوگ / انتخاب شما</p>
-          <h1>همهٔ لباس‌ها</h1>
+          <p className="eyebrow">فروشگاه / کشف انتخاب‌ها</p>
+          <h1>همهٔ لباس‌ها</h1><p className="subtle page-description">رنگ، سایز و لباسی که به شما می‌آید را پیدا کنید.</p>
         </div>
       </div>
       <Suspense fallback={<Loading />}>

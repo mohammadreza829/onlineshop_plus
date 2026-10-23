@@ -357,13 +357,13 @@ test("basic WCAG checks on desktop and mobile and dialog", async ({ page }) => {
   expect(result.violations).toEqual([]);
 });
 
-test("desktop selective Lenis: dialog focus/scroll-lock, route cleanup and live reduced-motion", async ({
+test("desktop native scrolling: dialog focus/scroll-lock, navigation and reduced-motion", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.getByRole("button", { name: "باز کردن سبد خرید" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect
@@ -392,7 +392,7 @@ test("desktop selective Lenis: dialog focus/scroll-lock, route cleanup and live 
   await expect(page).toHaveURL(/\/products$/);
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.goBack();
-  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
 });

@@ -16,3 +16,6 @@ public/favicon.ico
 !lib/**
 !app/api/media/
 !app/api/media/**
+
+# Reconstructed by prepare-assets.mjs from versioned source
+/public/images/wardrobe-editorial.webp
