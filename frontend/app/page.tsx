@@ -1,8 +1,13 @@
-import { site } from "@/config/site";
 import Link from "next/link";
-import { ArrowUpLeft } from "lucide-react";
+import {
+  ArrowUpLeft,
+  MoveDown,
+  Layers3,
+  ArrowDownLeft,
+  ScanLine,
+} from "lucide-react";
 import { HomeCatalog } from "@/features/catalog/home";
-import { HomeMotion } from "@/lib/motion/home-motion";
+import { Showroom } from "@/features/showroom/showroom";
 import { publicAPI, siteURL } from "@/lib/api/server";
 import type { Page, Product, Category } from "@/lib/api/types";
 import type { Metadata } from "next";
@@ -17,37 +22,79 @@ export default async function Home() {
     publicAPI<Page<Category>>("categories/?roots_only=true&limit=100"),
   ]);
   return (
-    <div className="container">
-      <section className="hero" aria-labelledby="home-title">
-        <div className="hero-frame">
-          <div className="hero-copy">
-            <p className="eyebrow">{site.hero.eyebrow}</p>
+    <div className="container home-page">
+      <section className="immersive-hero" aria-labelledby="home-title">
+        <div className="hero-issue" aria-hidden="true">
+          <span lang="en" dir="ltr">
+            PLUS / EXPERIMENTAL SHOWROOM
+          </span>
+          <span>پوشش از زاویه‌ای دیگر</span>
+        </div>
+        <div className="immersive-grid">
+          <div className="immersive-copy">
+            <p className="eyebrow">
+              <span className="status-dot" /> استایل، در بُعدی تازه
+            </p>
             <h1 id="home-title">
-              {site.hero.title}
+              از قاب
               <br />
-              <em>{site.hero.accent}</em>
+              معمولی،
+              <br />
+              <em>بیرون بزن.</em>
             </h1>
-            <p className="subtle">{site.hero.description}</p>
-            <Link className="button" href="/products">
-              {site.hero.cta}
-              <ArrowUpLeft size={20} />
-            </Link>
+            <p className="immersive-description">
+              لباس‌ها را کشف کن. جزئیات را ببین.
+              <br />
+              انتخاب بعدی، به سبک خودت.
+            </p>
+            <div className="hero-cta">
+              <Link className="button" href="/products">
+                ورود به فروشگاه <ArrowUpLeft size={20} aria-hidden="true" />
+              </Link>
+              <Link className="immersive-secondary" href="#latest">
+                تازه‌ترین‌ها <ArrowDownLeft size={18} aria-hidden="true" />
+              </Link>
+            </div>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <span className="art-number">لباس / انتخاب</span>
-            <span className="type-mark">{site.hero.artWord}</span>
-            <span className="art-label" lang="en" dir="ltr">
-              {site.hero.artLabel}
-            </span>
-          </div>
+          <Showroom />
         </div>
-        <div className="hero-bottom">
-          <span>کاتالوگ لباس · انتخاب رنگ و سایز</span>
-          <span>جزئیات هر انتخاب، پیش از خرید</span>
+        <div className="immersive-bottom">
+          <span>
+            <ScanLine size={16} aria-hidden="true" /> فرم را بچرخان؛ جزئیات را
+            کشف کن.
+          </span>
+          <Link href="#latest" aria-label="رفتن به تازه‌ترین لباس‌ها">
+            <MoveDown size={18} aria-hidden="true" /> پایین‌تر را ببین
+          </Link>
+          <span lang="en" dir="ltr">
+            FASHION, REFRAMED.
+          </span>
         </div>
-        <HomeMotion />
       </section>
+      <div className="editorial-strip">
+        <span lang="en" dir="ltr">
+          NOT JUST ANOTHER LOOK.
+        </span>
+        <p>
+          لباس برای پوشیدن.
+          <br />
+          <span className="subtle">جزئیات برای کشف‌کردن.</span>
+        </p>
+        <Layers3 size={32} strokeWidth={1} aria-hidden="true" />
+      </div>
       <HomeCatalog initialProducts={products} initialCategories={categories} />
+      <section className="browse-banner" aria-labelledby="browse-title">
+        <div>
+          <p className="eyebrow">انتخاب بعدی شما</p>
+          <h2 id="browse-title">جایی برای سلیقهٔ شما.</h2>
+          <p className="subtle">
+            همهٔ لباس‌ها را یک‌جا ببینید؛ با رنگ و سایز دلخواهتان.
+          </p>
+        </div>
+        <Link className="button" href="/products">
+          رفتن به فروشگاه <ArrowUpLeft size={20} aria-hidden="true" />
+        </Link>
+      </section>
     </div>
   );
 }

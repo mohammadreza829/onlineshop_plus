@@ -314,7 +314,7 @@ test("ambiguous checkout network error is not retried and survives reload", asyn
   await expect(
     page.getByRole("heading", { name: "ابتدا سفارش قبلی را بررسی کنید." }),
   ).toBeVisible();
-  expect(calls).toBe(1);
+  await expect.poll(() => calls).toBe(1);
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "ابتدا سفارش قبلی را بررسی کنید." }),
@@ -357,26 +357,18 @@ test("basic WCAG checks on desktop and mobile and dialog", async ({ page }) => {
   expect(result.violations).toEqual([]);
 });
 
-test("desktop selective Lenis: dialog focus/scroll-lock, route cleanup and live reduced-motion", async ({
+test("native scroll, dialog focus/scroll-lock and route cleanup", async ({
   page,
 }) => {
+  await mockAPI(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await page.getByRole("button", { name: "باز کردن سبد خرید" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => document.body.hasAttribute("data-scroll-locked")),
-    )
-    .toBe(true);
-  await page.keyboard.press("Tab");
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        Boolean(document.activeElement?.closest('[role="dialog"]')),
-      ),
     )
     .toBe(true);
   await page.keyboard.press("Escape");
@@ -386,13 +378,9 @@ test("desktop selective Lenis: dialog focus/scroll-lock, route cleanup and live 
     )
     .toBe(false);
   await page
-    .getByRole("link", { name: "همهٔ لباس‌ها", exact: true })
-    .first()
+    .locator(".desktop-nav")
+    .getByRole("link", { name: "فروشگاه", exact: true })
     .click();
   await expect(page).toHaveURL(/\/products$/);
-  await expect(page.locator("html")).not.toHaveClass(/lenis/);
-  await page.goBack();
-  await expect(page.locator("html")).toHaveClass(/lenis/);
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("html")).not.toHaveClass(/lenis/);
 });

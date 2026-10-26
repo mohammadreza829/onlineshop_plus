@@ -1,5 +1,6 @@
 // Reproducible local assets: no network/CDN and no runtime dependency added.
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -27,3 +28,32 @@ writeFileSync(
   ),
 );
 console.log("Prepared self-hosted Vazirmatn fonts and local favicon.");
+
+// Faithful render of the local CC0 cloth scene; static fallback, not inventory.
+const editorial = Buffer.from(
+  readFileSync(
+    resolve(root, "assets/cloth-fallback.webp.base64"),
+    "utf8",
+  ).trim(),
+  "base64",
+);
+if (
+  createHash("sha256").update(editorial).digest("hex") !==
+  "07e9bcf72a76f174caa46c89d57e6cdf8a10a32a0d274957ae2661fdcd23b0d5"
+)
+  throw new Error("Editorial asset checksum mismatch");
+mkdirSync(resolve(root, "public/images"), { recursive: true });
+writeFileSync(resolve(root, "public/images/cloth-fallback.webp"), editorial);
+
+// Microsoft SheenCloth (CC0), offline simplified; no CDN or model fetch at build.
+const cloth = Buffer.from(
+  readFileSync(resolve(root, "assets/cloth.mesh.base64"), "utf8").trim(),
+  "base64",
+);
+if (
+  createHash("sha256").update(cloth).digest("hex") !==
+  "fac8e099f1a4f030b88886d2b9e361b9eca308d4870156557f166a40da211f38"
+)
+  throw new Error("Cloth asset checksum mismatch");
+mkdirSync(resolve(root, "public/models"), { recursive: true });
+writeFileSync(resolve(root, "public/models/cloth.mesh"), cloth);

@@ -89,3 +89,10 @@ Playwright از Chromium نصب‌شده استفاده می‌کند (`CHROMIUM
 ## دارایی‌های قابل بازتولید
 
 `npm ci` با postinstall شش فونت محلی را از package قفل‌شدهٔ Vazirmatn و favicon خنثی را تولید می‌کند؛ `predev` و `prebuild` نیز همین مرحله را اجرا می‌کنند. binaryها در Git commit نمی‌شوند، اما بعد از نصب در `public/` ساخته می‌شوند و با نسخهٔ QA یکسان‌اند. اگر install scriptها را عمداً خاموش کرده‌اید، `npm run prepare:assets` را پیش از اجرا بزنید. هیچ CDN runtime لازم نیست.
+
+
+## بازطراحی Spatial Atelier
+
+ظاهر سراسری و شوروم واقعی WebGL در `features/showroom/` قرار دارند؛ Next پوستهٔ BFF/مسیرهاست و Three.js/R3F موتور سه‌بعدی. مدل صرفاً مطالعهٔ فرم پارچه است، نه نمایش ۳۶۰ محصول واقعی. رنگ‌ها و عمق اجزا از همان tokenهای `app/globals.css` می‌آیند. راهنمای تصمیم‌ها: `design-system/onlineshop-plus/MASTER.md`؛ نتیجهٔ آخرین تست‌ها و محدودیت‌ها: `docs/spatial-redesign.md`.
+
+`npm ci` / `prepare:assets` مدل محلی و تصویر جایگزین را از منبع متنی با SHA-256 تأییدشده بازتولید می‌کنند؛ build به CDN، کلید 21st یا دریافت مدل بیرونی نیاز ندارد. Binaryهای تولیدشده را جدا commit نکنید. برای نمایش محصولات واقعیِ قابل چرخش، GLB تأییدشدهٔ همان محصول لازم است.

@@ -16,3 +16,8 @@ public/favicon.ico
 !lib/**
 !app/api/media/
 !app/api/media/**
+
+# Reproduced from the checksum-verified text source by prepare-assets.mjs
+public/images/cloth-fallback.webp
+
+public/models/cloth.mesh

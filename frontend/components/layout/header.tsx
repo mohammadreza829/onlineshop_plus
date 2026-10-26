@@ -10,6 +10,7 @@ import {
   ArrowUpLeft,
 } from "lucide-react";
 import { site } from "@/config/site";
+import { ThemeIndicator } from "./theme-toggle";
 import { Sheet } from "@/components/ui/sheet";
 import { useApi } from "@/lib/api/hooks";
 import type { Cart, Category, Page } from "@/lib/api/types";
@@ -84,13 +85,19 @@ export function Header() {
           </Sheet>
         </div>
         <Link href="/" className="wordmark">
-          {site.name}
-          <small lang="en" dir="ltr">
-            {site.latinName}
-          </small>
+          <span className="brand-symbol" aria-hidden="true">
+            +
+          </span>
+          <span>
+            {site.name}
+            <small lang="en" dir="ltr">
+              {site.latinName}
+            </small>
+          </span>
         </Link>
         <nav className="desktop-nav" aria-label="ناوبری اصلی">
-          <Link href="/products">همهٔ لباس‌ها</Link>
+          <Link href="/products">فروشگاه</Link>
+          <Link href="/products?ordering=-created">تازه‌ترین‌ها</Link>
           {categories.data?.results.slice(0, 2).map((c) => (
             <Link
               key={c.id}
@@ -101,6 +108,7 @@ export function Header() {
           ))}
         </nav>
         <div className="header-actions">
+          <ThemeIndicator />
           <Link
             href="/products"
             className="icon-button optional"

@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { Tilt } from "@/components/ui/tilt";
 import Link from "next/link";
 import { Shirt, ArrowUpLeft } from "lucide-react";
 import type { Product, ProductDetail } from "@/lib/api/types";
@@ -12,27 +13,29 @@ export function ProductCard({ product: p }: { product: Product }) {
   const image = d.data?.images.find((i) => i.is_primary) ?? d.data?.images[0];
   return (
     <article className="product-card">
-      <Link
-        href={"/products/" + encodeURIComponent(p.slug)}
-        className="product-media"
-        aria-label={"مشاهدهٔ " + p.name}
-      >
-        {image?.image ? (
-          <Image
-            src={image.image}
-            alt={image.description || p.name}
-            width={480}
-            height={640}
-            unoptimized
-            loading="lazy"
-          />
-        ) : (
-          <span className="placeholder">
-            <Shirt size={36} strokeWidth={1} />
-            <span>تصویر ثبت نشده</span>
-          </span>
-        )}
-      </Link>
+      <Tilt className="card-depth" strength={5}>
+        <Link
+          href={"/products/" + encodeURIComponent(p.slug)}
+          className="product-media"
+          aria-label={"مشاهدهٔ " + p.name}
+        >
+          {image?.image ? (
+            <Image
+              src={image.image}
+              alt={image.description || p.name}
+              width={480}
+              height={640}
+              unoptimized
+              loading="lazy"
+            />
+          ) : (
+            <span className="placeholder">
+              <Shirt size={36} strokeWidth={1} />
+              <span>تصویر ثبت نشده</span>
+            </span>
+          )}
+        </Link>
+      </Tilt>
       <div className="card-meta">
         <div>
           <p className="subtle small">{p.category?.name ?? "لباس"}</p>
