@@ -120,6 +120,7 @@ export function Login() {
       </p>
       {step === "phone" ? (
         <form
+          key="phone"
           className="stack"
           onSubmit={(e) => {
             void form.handleSubmit((v) => request(v.phone))(e);
@@ -145,6 +146,7 @@ export function Login() {
         </form>
       ) : (
         <form
+          key="code"
           className="stack"
           onSubmit={(e) => {
             e.preventDefault();

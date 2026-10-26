@@ -127,7 +127,7 @@ class OrderPaymentView(APIView):
     def post(self, request, pk):
         order = get_object_or_404(orders_for_user(request.user), pk=pk)
         try:
-            url = start_payment(order, request.user, request.build_absolute_uri(reverse("payment:verify")))
+            url = start_payment(order, request.user, request.build_absolute_uri(reverse("payment:storefront_verify")))
         except PaymentError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response({"payment_url": url}, status=status.HTTP_200_OK)

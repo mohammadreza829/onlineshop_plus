@@ -12,12 +12,13 @@
 - [ ] Redis خصوصی مشترک با ACL/TLS/credential مناسب؛ عدم استفاده از memory در production؛ outage موجب fail-closed/503 می‌شود. دو سرویس Django و Redis یک transaction مشترک ندارند؛ بی‌وقفه‌بودن refresh در همهٔ crashها تضمین نشده است.
 - [ ] `BFF_LOCAL_HTTP` خاموش، `gw.test` حذف، کوکی Secure/HttpOnly/host-only/Lax روی HTTPS واقعاً بررسی شود.
 - [ ] نام‌های cookie واقعی Django با `DJANGO_SESSION_COOKIE_NAME` و `DJANGO_CSRF_COOKIE_NAME` مطابقت کنند. session سبد بین دستگاه‌ها sync نیست.
+- [ ] `SMS_CONSOLE_SHOW_OTP=False` در همهٔ محیط‌های عمومی/مشترک؛ opt-in نمایش کد صرفاً برای ترمینال توسعهٔ قابل اعتماد است.
 - [ ] log/monitoring/redaction نباید OTP، شماره، JWT، cookie یا پاسخ auth را ثبت کند. هیچ analytics خصوصی در این فاز اضافه نشده است.
 
 ## سه تصمیم اتصال پیش از انتشار عمومی
 
 - [ ] **IP معتبر مشتری و throttle:** BFF درخواست را server-to-server می‌فرستد؛ Django معمولاً IP سرویس Next را می‌بیند. طراحی trusted proxy/client-IP و نرخ‌ها باید در بک‌اند با تأیید مالک بررسی شوند. X-Forwarded-For ارسالی مرورگر را کورکورانه forward نکنید. QA نرخ بالا داشت؛ سلامت multi-user throttle production با آن اثبات نشده است.
-- [ ] **callback عمومی و یکپارچه:** callback موجود Django حفظ شده. Django ممکن است URL callback را با origin دریافت‌کنندهٔ درخواست بسازد؛ origin صرفاً داخلی BFF برای درگاه بیرونی کافی نیست. public origin/trusted proxy یا callback config باید درست باشد. redirect محدود به storefront پس از verify فقط با تأیید مالک؛ نتیجه باید مجدداً از سفارش صاحب حساب خوانده شود، نه `Status=OK`.
+- [ ] **callback عمومی و یکپارچه:** callback موجود Django حفظ شده. Django ممکن است URL callback را با origin دریافت‌کنندهٔ درخواست بسازد؛ origin صرفاً داخلی BFF برای درگاه بیرونی کافی نیست. public origin/trusted proxy یا callback config باید درست باشد. redirect محدود API از `/payment/storefront/verify/` پس از verify پیاده شده است؛ `FRONTEND_ORIGIN` در Django باید HTTPS و برابر `APP_ORIGIN` باشد. نتیجه مجدداً از سفارش صاحب حساب خوانده می‌شود، نه `Status=OK`. callbackهای legacy مستقل حفظ شده‌اند.
 - [ ] **پاک‌سازی سبد:** این فرانت بعد از پرداخت سبد را خودکار خالی نمی‌کند؛ بررسی و حذف انتخابی صریح دارد. endpoint شرطی/اتمیک برای پاک‌سازی فقط اقلام پرداخت‌شده در برابر تغییر سبد وجود ندارد. اگر پاک‌سازی خودکار لازم است، تغییر قرارداد backend نیازمند تأیید است.
 
 ## فروش، محتوا و پرداخت

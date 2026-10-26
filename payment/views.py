@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -30,7 +31,18 @@ def payment_process(request, order_id):
     return redirect_to_gateway(request, order)
 
 
-def payment_verify(request):
+def storefront_result(order_id=None):
+    destination = f"{settings.FRONTEND_ORIGIN}/payment/result"
+    if order_id is not None:
+        destination += f"?order={order_id}"
+    response = redirect(destination)
+    response.status_code = 303
+    response["Cache-Control"] = "no-store"
+    response["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+def payment_verify(request, storefront=False):
     """
     Gateway callback. Deliberately NOT login_required: if the session was lost on
     the way back we must still verify (the money may have been taken). The
@@ -39,6 +51,8 @@ def payment_verify(request):
     """
     authority = request.GET.get("Authority", "").strip()
     if not authority:
+        if storefront and settings.FRONTEND_ORIGIN:
+            return storefront_result()
         return render(
             request, "payment/payment_failed.html", {"error": "اطلاعات بازگشت از درگاه ناقص است."}, status=400
         )
@@ -46,10 +60,20 @@ def payment_verify(request):
     try:
         outcome = process_callback(authority)
     except Payment.DoesNotExist:
+        if storefront and settings.FRONTEND_ORIGIN:
+            return storefront_result()
         return render(request, "payment/payment_failed.html", {"error": "تراکنش یافت نشد."}, status=404)
 
     is_owner = request.user.is_authenticated and outcome.payment.user_id == request.user.id
     context = {"order": outcome.order if is_owner else None, "payment": outcome.payment}
+
+    if storefront and settings.FRONTEND_ORIGIN:
+        # Verification has completed server-side, even without a Django session.
+        # Never trust Status, next, return_to or any browser-supplied origin.
+        # No order details, tokens, authority or claimed success in this URL;
+        # the frontend must authenticate and fetch the owner-scoped order API.
+        # Do NOT clear the session cart: it may contain newer selections.
+        return storefront_result(outcome.order.pk)
 
     if outcome.succeeded:
         if is_owner:

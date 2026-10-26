@@ -94,12 +94,16 @@ test("real local Django journey: two variants, cookies, OTP, address, coupon, or
     .click();
   await expect(page).toHaveURL(/gw\.test/);
   const callback = await request.get(
-    "http://127.0.0.1:8100/payment/verify/?Authority=" +
+    "http://127.0.0.1:8100/payment/storefront/verify/?Authority=" +
       authority +
       "&Status=NOK",
+    { maxRedirects: 0 },
   );
-  expect(callback.ok()).toBe(true);
-  await page.goto("/payment/result?order=" + orderId);
+  expect(callback.status()).toBe(303);
+  expect(callback.headers().location).toBe(
+    "http://127.0.0.1:3100/payment/result?order=" + orderId,
+  );
+  await page.goto(callback.headers().location);
   await expect(
     page.getByRole("heading", { name: "پرداخت در سرور ثبت شده است." }),
   ).toBeVisible();
@@ -239,6 +243,7 @@ test("OTP error and Retry-After prevents repeat request", async ({ page }) => {
 
 test("OTP successful mock never leaves unsafe redirect origin", async ({
   page,
+  baseURL,
 }) => {
   await mockAPI(page);
   await page.goto("/login?next=https://evil.test");
@@ -246,7 +251,7 @@ test("OTP successful mock never leaves unsafe redirect origin", async ({
   await page.getByRole("button", { name: "دریافت کد تایید" }).click();
   await page.getByLabel("کد تایید شش‌رقمی").fill("123456");
   await page.getByRole("button", { name: "تایید و ورود" }).click();
-  await expect(page).toHaveURL("http://127.0.0.1:3100/account");
+  await expect(page).toHaveURL(new URL("/account", baseURL).href);
 });
 
 for (const status of [401, 403, 404, 429, 503])

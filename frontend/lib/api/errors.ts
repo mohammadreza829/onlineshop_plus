@@ -21,6 +21,7 @@ export function errorText(data: unknown, status = 0): string {
   if (Array.isArray(data)) return data.map((v) => errorText(v)).join("، ");
   if (data && typeof data === "object")
     return Object.entries(data)
+      .filter(([key]) => key !== "code")
       .map(
         ([k, v]) =>
           `${k === "detail" || k === "non_field_errors" ? "" : k + ": "}${errorText(v)}`,

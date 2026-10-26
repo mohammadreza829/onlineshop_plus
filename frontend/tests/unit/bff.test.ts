@@ -82,20 +82,25 @@ describe("limited BFF security and auth", () => {
         fetcher,
       );
       expect(r.status).toBe(403);
+      expect((await r.json()).code).toBe("bff_origin_mismatch");
+      expect(r.headers.get("X-BFF-Rejected-Before-Upstream")).toBeNull();
       expect(fetcher).not.toHaveBeenCalled();
     },
   );
   it("rejects missing and tampered CSRF", async () => {
     const req = request("cart/", "POST", {});
     req.headers.set("X-CSRFToken", "tampered");
+    const fetcher = vi.fn();
     const r = await handleBFF(
       req,
       "cart/",
       c,
       new MemoryCoordinator(),
-      vi.fn(),
+      fetcher,
     );
     expect(r.status).toBe(403);
+    expect(r.headers.get("X-BFF-Rejected-Before-Upstream")).toBe("csrf");
+    expect(fetcher).not.toHaveBeenCalled();
   });
   it("blocks cross-site reads", async () => {
     const req = request("me/");

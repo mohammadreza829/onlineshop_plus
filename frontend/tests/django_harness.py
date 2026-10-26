@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 os.environ.update(
     DJANGO_DEBUG="True",
+    FRONTEND_ORIGIN="http://127.0.0.1:3100",
     DJANGO_DB_ENGINE="sqlite",
     DJANGO_SECRET_KEY=secrets.token_urlsafe(64),
     DJANGO_ALLOWED_HOSTS="127.0.0.1,localhost,testserver",

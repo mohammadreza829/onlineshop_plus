@@ -42,6 +42,10 @@ def deliver_otp(phone, code):
     backend = settings.SMS_BACKEND
     if backend == "console":
         logger.warning("[console SMS] OTP for %s: %s", phone, code)
+        if settings.DEBUG and getattr(settings, "SMS_CONSOLE_SHOW_OTP", False):
+            # Explicit local development transport, not a global log-filter bypass.
+            # Omit the phone and never enable on shared/public environments.
+            print(f"[local development OTP] {code}", flush=True)
         return
     if backend != "smsir":
         raise SMSError(f"unknown SMS_BACKEND {backend!r}")
