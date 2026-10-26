@@ -38,6 +38,22 @@ npm audit
 REDIS_QA_URL=redis://127.0.0.1:6379/6 npm run test
 ```
 
+## برگشت پرداخت و خطای درخواست امن
+
+در `.env` **ریشهٔ Django**، مقدار زیر باید دقیقاً با `APP_ORIGIN` در `frontend/.env.local` برابر باشد (بدون اسلش آخر):
+
+```dotenv
+FRONTEND_ORIGIN=http://localhost:3000
+```
+
+در production مقدار HTTPS واقعی لازم است. در توسعه default همین `localhost:3000` است؛ در استقرار مستقل legacy، خالی‌بودن آن قالب‌های قدیمی را حفظ می‌کند. API پرداخت از callback جداگانهٔ `/payment/storefront/verify/` استفاده می‌کند: ابتدا verify سرور، سپس redirect به `/payment/result?order=ID`. وضعیت/مبلغ فقط از API متعلق به کاربر خوانده می‌شود؛ `Status=OK` اثبات پرداخت نیست. هیچ URL بازگشت دلخواه از مرورگر پذیرفته نمی‌شود. callbackهای پرداخت‌هایی که **پیش از این اصلاح** شروع شده‌اند، عوض نمی‌شوند؛ آنها را دوباره پرداخت نکنید و از سفارش‌های حساب بررسی کنید.
+
+توکن CSRF منقضی‌شده/جایگزین‌شده فقط پس از پاسخ صریح BFF مبنی بر رد درخواست **پیش از ارسال به Django** یک بار بازیابی می‌شود. خطای شبکه، خطای upstream، origin متفاوت و عملیات مبهم خودکار تکرار نمی‌شوند. در توسعه، تفاوت `localhost`/`127.0.0.1` فقط روی همان پورت، پیش از mount مصرف‌کنندگان API با ناوبری کامل مرورگر به `APP_ORIGIN` اصلاح می‌شود؛ CSRF و کنترل Origin همچنان فعال‌اند. پورت متفاوت را حدس نمی‌زنیم.
+
+برای مشاهدهٔ OTP در ترمینال قابل اعتماد خودتان، فقط در توسعهٔ محلی `DJANGO_DEBUG=True`، `SMS_BACKEND=console`، `SMS_ASYNC=False` و `SMS_CONSOLE_SHOW_OTP=True` را در محیط Django تنظیم کنید. کد با برچسب `[local development OTP]` و بدون شماره چاپ می‌شود؛ فیلتر JSON بقیهٔ لاگ‌ها دست‌نخورده است. این گزینه پیش‌فرض خاموش است و با DEBUG=False اجازهٔ شروع برنامه نمی‌دهد؛ آن را روی سرور عمومی/مشترک فعال نکنید.
+
+پس از تغییر `.env` یا `.env.local` هر دو سرور را restart کنید. `BFF_COOKIE_SECRET` را با هر اجرا عوض نکنید؛ یک کلید محلی ثابت و محرمانه نگه دارید.
+
 ## تست مرورگر ایزوله (نه production)
 
 ابتدا وابستگی‌های Python ریشه را نصب کنید. Redis تست را جدا از دادهٔ production اجرا کنید. `tests/django_harness.py` دیتابیس SQLite موقت می‌سازد؛ OTP transport، randomness و درگاه فقط در process تست جایگزین می‌شوند. هرگز این harness را روی اینترنت expose نکنید.
@@ -84,8 +100,15 @@ Playwright از Chromium نصب‌شده استفاده می‌کند (`CHROMIUM
 - انتشار: [`docs/deployment-checklist.md`](docs/deployment-checklist.md).
 - مجوزها: [`docs/licenses.md`](docs/licenses.md).
 
-**callback درگاه همچنان صفحهٔ Django است.** داشتن `/payment/result` به معنی اتصال خودکار callback به Next نیست. با مرور سفارش همان حساب می‌توان نتیجهٔ تأییدشده را دید. برای یکپارچه‌سازی callback، تغییر محدود بک‌اند نیازمند تأیید صاحب پروژه است.
+**callback پرداخت API به storefront متصل شده است.** بخش «برگشت پرداخت و خطای درخواست امن» و `docs/routing-security-fix.md` را ببینید. مسیرهای legacy برای سازگاری حفظ شده‌اند؛ تنظیم `FRONTEND_ORIGIN` و قابل‌دسترسی‌بودن callback عمومی درگاه برای استقرار واقعی همچنان لازم‌اند.
 
 ## دارایی‌های قابل بازتولید
 
 `npm ci` با postinstall شش فونت محلی را از package قفل‌شدهٔ Vazirmatn و favicon خنثی را تولید می‌کند؛ `predev` و `prebuild` نیز همین مرحله را اجرا می‌کنند. binaryها در Git commit نمی‌شوند، اما بعد از نصب در `public/` ساخته می‌شوند و با نسخهٔ QA یکسان‌اند. اگر install scriptها را عمداً خاموش کرده‌اید، `npm run prepare:assets` را پیش از اجرا بزنید. هیچ CDN runtime لازم نیست.
+
+
+## بازطراحی Spatial Atelier
+
+ظاهر سراسری و شوروم واقعی WebGL در `features/showroom/` قرار دارند؛ Next پوستهٔ BFF/مسیرهاست و Three.js/R3F موتور سه‌بعدی. مدل صرفاً مطالعهٔ فرم پارچه است، نه نمایش ۳۶۰ محصول واقعی. رنگ‌ها و عمق اجزا از همان tokenهای `app/globals.css` می‌آیند. راهنمای تصمیم‌ها: `design-system/onlineshop-plus/MASTER.md`؛ نتیجهٔ آخرین تست‌ها و محدودیت‌ها: `docs/spatial-redesign.md`.
+
+`npm ci` / `prepare:assets` مدل محلی و تصویر جایگزین را از منبع متنی با SHA-256 تأییدشده بازتولید می‌کنند؛ build به CDN، کلید 21st یا دریافت مدل بیرونی نیاز ندارد. Binaryهای تولیدشده را جدا commit نکنید. برای نمایش محصولات واقعیِ قابل چرخش، GLB تأییدشدهٔ همان محصول لازم است.

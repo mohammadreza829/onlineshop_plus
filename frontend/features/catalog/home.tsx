@@ -1,5 +1,9 @@
 "use client";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
+const subscribe = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 import { ArrowUpLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -13,6 +17,13 @@ export function HomeCatalog({
   initialProducts?: Page<Product>;
   initialCategories?: Page<Category>;
 }) {
+  // Header may populate shared cache before a streamed page hydrates. Keep the
+  // server loading state until hydration when SSR data was unavailable.
+  const hydrated = useSyncExternalStore(
+    subscribe,
+    clientSnapshot,
+    serverSnapshot,
+  );
   const categories = useQuery({
       queryKey: ["categories/?roots_only=true&limit=100"],
       queryFn: ({ signal }) =>
@@ -29,7 +40,7 @@ export function HomeCatalog({
     });
   return (
     <>
-      <section className="section">
+      <section className="section categories-section">
         <div className="section-head">
           <div>
             <p className="eyebrow">از کجا شروع کنیم؟</p>
@@ -40,7 +51,7 @@ export function HomeCatalog({
             <ArrowUpLeft size={18} />
           </Link>
         </div>
-        {categories.isPending ? (
+        {categories.isPending || (!hydrated && !initialCategories) ? (
           <Loading />
         ) : categories.isError ? (
           <ErrorNotice
@@ -49,12 +60,16 @@ export function HomeCatalog({
           />
         ) : categories.data.results.length ? (
           <nav className="category-list" aria-label="دسته‌های لباس">
-            {categories.data.results.map((c) => (
+            {categories.data.results.map((c, index) => (
               <Link
                 key={c.id}
                 href={"/products?category=" + encodeURIComponent(c.slug)}
               >
-                {c.name}
+                <span className="category-index" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span>{c.name}</span>
+                <ArrowUpLeft size={18} aria-hidden="true" />
               </Link>
             ))}
           </nav>
@@ -62,7 +77,7 @@ export function HomeCatalog({
           <p className="subtle">هنوز دسته‌ای در فروشگاه ثبت نشده است.</p>
         )}
       </section>
-      <section className="section" style={{ paddingTop: 16 }}>
+      <section id="latest" className="section latest-section">
         <div className="section-head">
           <div>
             <p className="eyebrow">تازه به فروشگاه رسیده</p>
@@ -73,7 +88,7 @@ export function HomeCatalog({
             <ArrowUpLeft size={18} />
           </Link>
         </div>
-        {products.isPending ? (
+        {products.isPending || (!hydrated && !initialProducts) ? (
           <Loading />
         ) : products.isError ? (
           <ErrorNotice

@@ -281,3 +281,56 @@ class ConcurrentCallbackTests(TransactionTestCase):
         self.assertEqual(gateway.verify_calls, 1)
         product.refresh_from_db()
         self.assertEqual(product.inventory, 3)
+
+
+class StorefrontCallbackTests(PaymentFlowTestBase):
+    """Only the API callback returns to the configured storefront origin."""
+
+    @mock.patch("django.conf.settings.FRONTEND_ORIGIN", "https://store.test")
+    def test_verified_return_without_session_is_owner_scoped_in_frontend(self):
+        authority = self.start()
+        response = self.client.get(reverse("payment:storefront_verify"), {
+            "Authority": authority, "Status": "NOK", "next": "https://evil.test",
+        })
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response["Location"], f"https://store.test/payment/result?order={self.order.pk}")
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertNotIn(authority, response["Location"])
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.is_paid)  # Status=NOK is not trusted.
+        self.client.get(reverse("payment:storefront_verify"), {"Authority": authority})
+        self.assertEqual(self.gateway.verify_calls, 1)
+
+    @mock.patch("django.conf.settings.FRONTEND_ORIGIN", "https://store.test")
+    def test_spoofed_success_and_unknown_are_not_promoted_to_paid(self):
+        for state in (VerifyStatus.FAILED, VerifyStatus.UNKNOWN):
+            with self.subTest(state=state):
+                self.gateway.verify_status = state
+                response = self.client.get(reverse("payment:storefront_verify"), {
+                    "Authority": self.start(), "Status": "OK",
+                })
+                self.assertEqual(response.status_code, 303)
+                self.order.refresh_from_db()
+                self.assertFalse(self.order.is_paid)
+
+    @mock.patch("django.conf.settings.FRONTEND_ORIGIN", "https://store.test")
+    def test_storefront_return_does_not_clear_new_cart_selections(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("cart:cart_add", args=[self.product.id]), {"quantity": 1})
+        before = self.client.session.get("cart")
+        self.client.get(reverse("payment:storefront_verify"), {"Authority": self.start()})
+        self.assertEqual(self.client.session.get("cart"), before)
+
+    @mock.patch("django.conf.settings.FRONTEND_ORIGIN", "https://store.test")
+    def test_invalid_authority_returns_without_claiming_payment_or_verifying(self):
+        for query in ({}, {"Authority": "fake", "next": "https://evil.test"}):
+            response = self.client.get(reverse("payment:storefront_verify"), query)
+            self.assertEqual(response.status_code, 303)
+            self.assertEqual(response["Location"], "https://store.test/payment/result")
+        self.assertEqual(self.gateway.verify_calls, 0)
+
+    @mock.patch("django.conf.settings.FRONTEND_ORIGIN", "")
+    def test_empty_origin_preserves_legacy_success_page(self):
+        response = self.client.get(reverse("payment:storefront_verify"), {"Authority": self.start()})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "REF-1")

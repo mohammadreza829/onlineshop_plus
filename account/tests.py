@@ -196,3 +196,26 @@ class LoginViewTests(TestCase):
         self.assertRedirects(
             response, reverse("account:login") + "?next=/orders/create/", fetch_redirect_response=False
         )
+
+
+class LocalConsoleOTPTests(TestCase):
+    @override_settings(DEBUG=True, SMS_BACKEND="console", SMS_CONSOLE_SHOW_OTP=True)
+    @mock.patch("builtins.print")
+    def test_explicit_local_console_displays_code_without_phone(self, output):
+        from .sms import deliver_otp
+        deliver_otp("09121234567", "123456")
+        output.assert_called_once_with("[local development OTP] 123456", flush=True)
+
+    @override_settings(DEBUG=True, SMS_BACKEND="console", SMS_CONSOLE_SHOW_OTP=False)
+    @mock.patch("builtins.print")
+    def test_default_console_does_not_bypass_redaction(self, output):
+        from .sms import deliver_otp
+        deliver_otp("09121234567", "123456")
+        output.assert_not_called()
+
+    @override_settings(DEBUG=False, SMS_BACKEND="console", SMS_CONSOLE_SHOW_OTP=True)
+    @mock.patch("builtins.print")
+    def test_even_overridden_non_debug_runtime_never_prints_code(self, output):
+        from .sms import deliver_otp
+        deliver_otp("09121234567", "123456")
+        output.assert_not_called()

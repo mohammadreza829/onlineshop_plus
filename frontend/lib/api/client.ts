@@ -9,7 +9,10 @@ async function csrf() {
   })
     .then(async (r) => {
       if (!r.ok) throw new ApiError(r.status, null);
-      return (await r.json()).csrf_token as string;
+      const token: unknown = (await r.json()).csrf_token;
+      if (typeof token !== "string" || !token)
+        throw new ApiError(502, { detail: "پاسخ اعتبارسنجی معتبر نیست." });
+      return token;
     })
     .finally(() => {
       bootstrap = undefined;
@@ -26,12 +29,12 @@ export async function api<T>(
 ): Promise<T> {
   const method = options.method ?? "GET",
     headers = new Headers({ Accept: "application/json" });
-  if (method !== "GET") headers.set("X-CSRFToken", await csrf());
+  const mutation = !["GET", "HEAD"].includes(method);
+  if (mutation) headers.set("X-CSRFToken", await csrf());
   if (options.body !== undefined)
     headers.set("Content-Type", "application/json");
-  let r: Response;
-  try {
-    r = await fetch("/api/shop/" + path, {
+  const send = () =>
+    fetch("/api/shop/" + path, {
       method,
       headers,
       body:
@@ -40,8 +43,22 @@ export async function api<T>(
       credentials: "same-origin",
       signal: options.signal ?? AbortSignal.timeout(25000),
     });
+  let r: Response;
+  try {
+    r = await send();
+    if (
+      mutation &&
+      r.status === 403 &&
+      r.headers.get("X-BFF-Rejected-Before-Upstream") === "csrf"
+    ) {
+      // Never retry timeouts, gateway errors, upstream 403s or ambiguous writes.
+      // The BFF guarantees this specific failure never reached Django.
+      resetCSRF();
+      headers.set("X-CSRFToken", await csrf());
+      r = await send();
+    }
   } catch (e) {
-    if (options.signal?.aborted) throw e;
+    if (options.signal?.aborted || e instanceof ApiError) throw e;
     throw new ApiError(0, {
       detail: "ارتباط قطع شد؛ پیش از تکرار عملیات سفارش‌ها را بررسی کنید.",
     });

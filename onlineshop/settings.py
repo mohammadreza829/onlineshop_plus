@@ -8,6 +8,7 @@ variables (or a local `.env` file). See `.env.example` for the full list.
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -52,6 +53,22 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY is required when DEBUG is False.")
     # Development only: a throw-away key so the project runs out of the box.
     SECRET_KEY = "dev-only-insecure-key-do-not-use-in-production"
+
+# Trusted storefront return origin. Empty preserves standalone legacy deployment.
+# Development default matches frontend/.env.example; set explicitly for other ports.
+FRONTEND_ORIGIN = env("FRONTEND_ORIGIN", "http://localhost:3000" if DEBUG else "")
+if FRONTEND_ORIGIN:
+    _frontend = urlsplit(FRONTEND_ORIGIN)
+    if (
+        _frontend.scheme not in ("http", "https")
+        or not _frontend.netloc
+        or _frontend.username or _frontend.password
+        or _frontend.path or _frontend.query or _frontend.fragment
+        or (not DEBUG and _frontend.scheme != "https")
+        or any(char.isspace() for char in FRONTEND_ORIGIN)
+        or "\\" in FRONTEND_ORIGIN
+    ):
+        raise ImproperlyConfigured("FRONTEND_ORIGIN must be a trusted origin without a path; HTTPS is required in production.")
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
@@ -196,6 +213,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # "console" logs the OTP instead of sending it (development only).
 SMS_BACKEND = env("SMS_BACKEND", "console" if DEBUG else "smsir")
+# Explicit opt-in for a trusted local terminal only; normal JSON logs stay redacted.
+SMS_CONSOLE_SHOW_OTP = env_bool("SMS_CONSOLE_SHOW_OTP", False)
+if SMS_CONSOLE_SHOW_OTP and not DEBUG:
+    raise ImproperlyConfigured("SMS_CONSOLE_SHOW_OTP is development-only.")
 SMS_IR_API_KEY = env("SMS_IR_API_KEY")
 SMS_IR_LINE_NUMBER = env("SMS_IR_LINE_NUMBER")
 # Template-based "verify" API (recommended for OTP). Template text e.g. "کد ورود: #CODE#"

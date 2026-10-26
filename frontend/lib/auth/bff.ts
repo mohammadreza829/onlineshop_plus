@@ -131,13 +131,30 @@ export async function handleBFF(
     const origin = req.headers.get("origin"),
       token = req.headers.get("x-csrftoken") ?? "",
       expected = cookie(n.csrf) ?? "";
-    if (
-      origin !== c.origin ||
-      !expected ||
-      !equal(token, expected) ||
-      !validCSRF(token, c.secret)
-    )
-      return fail(403, "درخواست امن معتبر نیست. صفحه را تازه کنید.");
+    if (origin !== c.origin)
+      return response(
+        {
+          code: "bff_origin_mismatch",
+          detail:
+            "نشانی مرورگر با APP_ORIGIN هماهنگ نیست. فروشگاه را از " +
+            c.origin +
+            " باز کنید.",
+        },
+        403,
+      );
+    if (!expected || !equal(token, expected) || !validCSRF(token, c.secret)) {
+      // This rejection happens before reading/forwarding any mutation. Only this
+      // explicit response permits the client to renew CSRF and retry once.
+      const rejected = response(
+        {
+          code: "bff_csrf_rejected",
+          detail: "اعتبار درخواست امن منقضی شده است. دوباره تلاش کنید.",
+        },
+        403,
+      );
+      rejected.headers.set("X-BFF-Rejected-Before-Upstream", "csrf");
+      return rejected;
+    }
   }
   let body: unknown;
   if (!["GET", "HEAD", "DELETE"].includes(req.method)) {

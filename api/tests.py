@@ -245,9 +245,17 @@ class CheckoutAPITests(APITestBase):
         order_id = response.data["order"]["id"]
         self.assertIn("/api/v1/orders/", response.data["payment_api_url"])
         self.assertEqual(self.client.get(url("order_detail", order_id)).status_code, 200)
-        with mock.patch("payment.services.get_gateway", return_value=FakeGateway()):
+        gateway = FakeGateway()
+        with (
+            mock.patch("payment.services.get_gateway", return_value=gateway),
+            mock.patch.object(gateway, "request_payment", wraps=gateway.request_payment) as initiate,
+        ):
             payment = self.client.post(url("order_payment", order_id))
         self.assertTrue(payment.data["payment_url"].startswith("https://gw.test/"))
+        self.assertEqual(
+            initiate.call_args.kwargs["callback_url"],
+            "http://testserver" + reverse("payment:storefront_verify"),
+        )
         canceled = self.client.post(url("order_cancel", order_id))
         self.assertEqual(canceled.status_code, 200)
         self.product.refresh_from_db()

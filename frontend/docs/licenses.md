@@ -1,7 +1,12 @@
 # دارایی‌ها و مجوزها
 
 - Vazirmatn self-host: شش فایل WOFF2 (Arabic/Latin در وزن‌های 400/500/700) هنگام نصب/ساخت از package قفل‌شدهٔ `@fontsource/vazirmatn`؛ OFL همراه در `public/fonts/OFL.txt`. سه وزن Arabic preload می‌شوند. فونت از CDN runtime دریافت نمی‌شود.
-- تصاویر محصول فقط از API خود فروشگاه؛ مجوز آن‌ها مسئولیت مالک محتواست. هیچ عکس استوک یا تصویر تولیدی ساختگی به کاتالوگ اضافه نشده است. Hero تایپوگرافیک است.
+- تصاویر محصول فقط از API خود فروشگاه؛ مجوز آن‌ها مسئولیت مالک محتواست. هیچ عکس استوک یا تصویر تولیدی ساختگی به کاتالوگ اضافه نشده است. Hero یک مطالعهٔ واقعی WebGL روی پارچه است، نه محصول قابل فروش؛ تصویر جایگزین از همان مدل رندر شده است.
 - GSAP/ScrollTrigger: مجوز همراه package و [GSAP Standard License](https://gsap.com/standard-license) را برای نوع بهره‌برداری نهایی نگه دارید و بررسی کنید؛ این گزارش مشاورهٔ حقوقی نیست.
 - React Bits اضافه نشده؛ در این طراحی فایدهٔ روشن نسبت به هزینهٔ bundle/QA نداشت.
 - آیکون‌ها از `lucide-react` نصب‌شده هستند؛ مجوز dependencyها در packageهای lockfile باقی مانده است. `npm audit` بررسی آسیب‌پذیری است، نه تأیید حقوقی مجوزها.
+
+- Three.js و React Three Fiber: مجوزهای MIT همراه dependencyهای قفل‌شده نگهداری می‌شوند.
+- مدل Microsoft SheenCloth: CC0؛ هندسهٔ سبک‌شده و منشأ در `SheenCloth-CC0.md`. متریال، نورپردازی و سکوی نمایش محلی‌اند. تصویر جایگزین رندر همین مدل است، نه عکس محصول.
+- Tilt از ibelick/Motion Primitives از طریق 21st.dev (demo 1448): نسخهٔ تطبیق‌یافته برای Motion موجود؛ متن کامل MIT در `motion-primitives-LICENSE.txt`.
+- اسکیل UI UX Pro Max در revision `d14efff8ed1faa4187f004f79926f428c8074ec7` برای تصمیم‌های طراحی استفاده شد؛ دیتاست و اسکریپت upstream داخل runtime این فروشگاه توزیع نشده‌اند.

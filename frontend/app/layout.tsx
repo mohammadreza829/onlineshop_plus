@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LocalOrigin } from "@/components/local-origin";
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl" data-scroll-behavior="smooth">
       <head>
         {[400, 500, 700].map((weight) => (
           <link
@@ -30,11 +31,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <a href="#main" className="skip">
           رفتن به محتوای اصلی
         </a>
-        <Providers>
-          <Header />
-          <main id="main">{children}</main>
-          <Footer />
-        </Providers>
+        <LocalOrigin
+          origin={
+            process.env.NODE_ENV === "development"
+              ? process.env.APP_ORIGIN
+              : undefined
+          }
+        >
+          <Providers>
+            <Header />
+            <main id="main">{children}</main>
+            <Footer />
+          </Providers>
+        </LocalOrigin>
       </body>
     </html>
   );
